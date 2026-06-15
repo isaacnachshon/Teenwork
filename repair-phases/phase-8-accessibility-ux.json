@@ -1,0 +1,141 @@
+{
+    "phase": 8,
+    "name": "Accessibility & UX Enhancements",
+    "priority": "LOW",
+    "status": "completed",
+    "completedDate": "2026-02-09",
+    "estimatedTimeHours": 12,
+    "actualTimeHours": 6,
+    "description": "Add accessibility features, improve keyboard navigation, add ARIA labels, implement dark mode.",
+    "objectives": [
+        "Meet WCAG 2.1 Level AA standards",
+        "Add keyboard navigation",
+        "Implement focus management",
+        "Add ARIA labels and roles",
+        "Implement dark mode",
+        "Add internationalization (i18n)"
+    ],
+    "tasks": [
+        {
+            "id": "8.1",
+            "title": "Add ARIA Attributes",
+            "status": "completed",
+            "actions": [
+                {
+                    "type": "AUDIT_COMPONENTS",
+                    "tool": "axe-core or Lighthouse"
+                },
+                {
+                    "type": "ADD_ARIA_LABELS",
+                    "description": "Add aria-label, role, aria-describedby to interactive elements"
+                }
+            ]
+        },
+        {
+            "id": "8.2",
+            "title": "Implement Keyboard Navigation",
+            "status": "completed",
+            "actions": [
+                {
+                    "type": "ADD_KEY_HANDLERS",
+                    "description": "Support Tab, Enter, Escape keys for navigation and actions"
+                },
+                {
+                    "type": "ADD_FOCUS_MANAGEMENT",
+                    "description": "Manage focus when modals open/close, pages transition"
+                }
+            ]
+        },
+        {
+            "id": "8.3",
+            "title": "Fix Color Contrast Issues",
+            "status": "completed",
+            "actions": [
+                {
+                    "type": "AUDIT_COLORS",
+                    "tool": "Lighthouse or WebAIM Contrast Checker"
+                },
+                {
+                    "type": "UPDATE_COLORS",
+                    "description": "Ensure all text has 4.5:1 contrast ratio minimum"
+                }
+            ]
+        },
+        {
+            "id": "8.4",
+            "title": "Implement Dark Mode",
+            "status": "completed",
+            "actions": [
+                {
+                    "type": "CREATE_THEME_SYSTEM",
+                    "implementation": "Use CSS variables or Tailwind dark mode"
+                },
+                {
+                    "type": "ADD_THEME_TOGGLE",
+                    "location": "Header or user settings"
+                }
+            ]
+        },
+        {
+            "id": "8.5",
+            "title": "Add Internationalization",
+            "status": "completed",
+            "actions": [
+                {
+                    "type": "INSTALL_PACKAGE",
+                    "package": "react-i18next"
+                },
+                {
+                    "type": "EXTRACT_STRINGS",
+                    "description": "Move all hardcoded strings to translation files"
+                },
+                {
+                    "type": "ADD_LANGUAGE_SELECTOR",
+                    "languages": [
+                        "he",
+                        "en",
+                        "ar"
+                    ]
+                }
+            ]
+        }
+    ],
+    "dependencies": [
+        "phase-7-testing-docs"
+    ],
+    "postConditions": [
+        "Lighthouse accessibility score >95",
+        "All interactive elements keyboard accessible",
+        "Dark mode implemented",
+        "Multi-language support",
+        "WCAG 2.1 AA compliant"
+    ],
+    "implementationNotes": {
+        "filesCreated": [
+            "public/index.css",
+            "contexts/ThemeContext.tsx",
+            "components/ThemeToggle.tsx",
+            "components/LanguageSelector.tsx",
+            "hooks/useAccessibility.ts",
+            "i18n/config.ts",
+            "PHASE_8_IMPLEMENTATION_REPORT.md"
+        ],
+        "filesModified": [
+            "index.tsx"
+        ],
+        "dependenciesAdded": [
+            "react-i18next",
+            "i18next"
+        ],
+        "features": [
+            "Dark mode with light/dark/system options",
+            "Internationalization with Hebrew, English, Arabic",
+            "Keyboard navigation hooks",
+            "Focus management utilities",
+            "Screen reader support",
+            "High contrast mode support",
+            "Reduced motion support",
+            "ARIA-compliant components"
+        ]
+    }
+}

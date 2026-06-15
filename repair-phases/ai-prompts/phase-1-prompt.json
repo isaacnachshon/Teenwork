@@ -1,0 +1,389 @@
+{
+    "phase": 1,
+    "phaseName": "Critical Security Fixes",
+    "priority": "CRITICAL",
+    "estimatedHours": 8,
+    "agentRole": "Senior Security Engineer & Code Remediation Specialist",
+    "context": {
+        "projectName": "TeenWork - Teen Employment Platform",
+        "projectRoot": "c:/Users/orina/TeenWork/teenwork",
+        "description": "React + TypeScript + Firebase application for connecting teens with employers",
+        "currentState": "Application has CRITICAL security vulnerabilities that must be fixed immediately",
+        "investigationReport": "../INVESTIGATION_REPORT.md"
+    },
+    "objectives": [
+        "Remove ALL hardcoded API keys and credentials from source code",
+        "Delete insecure admin setup and password reset utilities permanently",
+        "Fix memory leaks in authentication flow",
+        "Implement proper environment variable management",
+        "Add comprehensive image upload validation",
+        "Document backend requirements for AI API usage"
+    ],
+    "criticalRules": [
+        "NO hardcoded credentials or API keys anywhere in code",
+        "NO commenting out code - DELETE security vulnerabilities completely",
+        "NO placeholders - implement real, working solutions",
+        "NO errors after completion - application must run successfully",
+        "ALL changes must be tested and verified",
+        "ZERO tolerance for security issues"
+    ],
+    "tasks": [
+        {
+            "taskId": "1.1",
+            "title": "Remove Temporary Admin Utilities",
+            "severity": "CRITICAL",
+            "description": "Delete AdminSetup.tsx and AdminPasswordReset.tsx files and remove all references from App.tsx",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "DELETE_FILE",
+                    "file": "teenwork/components/AdminSetup.tsx",
+                    "reason": "Security vulnerability - allows unauthorized admin account creation",
+                    "validation": "Verify file no longer exists in filesystem"
+                },
+                {
+                    "step": 2,
+                    "action": "DELETE_FILE",
+                    "file": "teenwork/components/AdminPasswordReset.tsx",
+                    "reason": "Security vulnerability - allows unauthorized password resets",
+                    "validation": "Verify file no longer exists in filesystem"
+                },
+                {
+                    "step": 3,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/App.tsx",
+                    "changes": [
+                        {
+                            "changeType": "REMOVE_IMPORTS",
+                            "lines": [
+                                12,
+                                13
+                            ],
+                            "removeExact": [
+                                "import AdminSetup from './components/AdminSetup';",
+                                "import AdminPasswordReset from './components/AdminPasswordReset';"
+                            ]
+                        },
+                        {
+                            "changeType": "REMOVE_STATE",
+                            "lines": [
+                                31,
+                                32
+                            ],
+                            "removeExact": [
+                                "const [showAdminSetup, setShowAdminSetup] = useState(false);",
+                                "const [showPasswordReset, setShowPasswordReset] = useState(false);"
+                            ]
+                        },
+                        {
+                            "changeType": "REMOVE_EFFECT",
+                            "lines": [
+                                34,
+                                42
+                            ],
+                            "description": "Remove entire useEffect that checks URL parameters for ?setup=admin and ?reset=admin"
+                        },
+                        {
+                            "changeType": "REMOVE_CONDITIONAL_RENDER",
+                            "lines": [
+                                194,
+                                202
+                            ],
+                            "description": "Remove if blocks that render AdminSetup and AdminPasswordReset components"
+                        }
+                    ]
+                }
+            ],
+            "validation": [
+                "Run: grep -r 'AdminSetup' teenwork/ - should return NO results",
+                "Run: grep -r 'AdminPasswordReset' teenwork/ - should return NO results",
+                "Test URL with ?setup=admin parameter - should do nothing",
+                "Test URL with ?reset=admin parameter - should do nothing",
+                "Run: npm run dev - application should start without errors",
+                "Verify no broken imports or undefined references"
+            ],
+            "rollbackProcedure": "If errors occur, restore files from git: git checkout HEAD -- teenwork/components/Admin*.tsx teenwork/App.tsx"
+        },
+        {
+            "taskId": "1.2",
+            "title": "Remove Hardcoded Admin Email Check",
+            "severity": "CRITICAL",
+            "description": "Remove hardcoded admin email fallback and rely solely on Firestore for role assignment",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/App.tsx",
+                    "changes": [
+                        {
+                            "changeType": "REMOVE_CODE_BLOCK",
+                            "startLine": 67,
+                            "endLine": 70,
+                            "removeExact": "} else if (user.email === 'isaacnachshon@gmail.com') {\n  console.warn('User doc for admin not found; using legacy admin fallback. Consider adding users/{uid} with role in Firestore.');\n  role = 'admin';\n}",
+                            "reason": "Hardcoded admin email is a security backdoor"
+                        },
+                        {
+                            "changeType": "UPDATE_LOGIC",
+                            "location": "After line 66 (after userDoc.exists() check)",
+                            "addCode": "} else {\n  // No user document found - sign out user\n  console.error('User document not found in Firestore. User must be properly registered.');\n  await signOut(auth);\n  setRole('landing');\n  return;\n}"
+                        }
+                    ]
+                }
+            ],
+            "validation": [
+                "Search code for 'isaacnachshon@gmail.com' - should return NO results",
+                "Test login with user that has NO Firestore document - should be signed out",
+                "Test login with valid teen user - should work correctly",
+                "Test login with valid employer user - should work correctly",
+                "Verify no console.warn about 'legacy admin fallback'"
+            ]
+        },
+        {
+            "taskId": "1.3",
+            "title": "Implement Environment Variables for Firebase Config",
+            "severity": "CRITICAL",
+            "description": "Move Firebase credentials to environment variables and create proper configuration files",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "CREATE_FILE",
+                    "file": "teenwork/.env.example",
+                    "content": "# Firebase Configuration\n# Copy this file to .env.local and fill in your actual values\n# NEVER commit .env.local to version control\n\nVITE_FIREBASE_API_KEY=your_api_key_here\nVITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com\nVITE_FIREBASE_PROJECT_ID=your_project_id\nVITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com\nVITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id\nVITE_FIREBASE_APP_ID=your_app_id\n\n# Google AI (for backend use only - do not expose in frontend)\n# GOOGLE_GENAI_API_KEY=your_api_key_here"
+                },
+                {
+                    "step": 2,
+                    "action": "CREATE_FILE",
+                    "file": "teenwork/.env.local",
+                    "content": "# This file contains ACTUAL credentials - NEVER commit to git\n# Values extracted from current firebase.ts file\n\nVITE_FIREBASE_API_KEY=AIzaSyBJzLMOzNWVHScG4yAwiXVDKDmFrGN8cAg\nVITE_FIREBASE_AUTH_DOMAIN=teenwork-4c9de.firebaseapp.com\nVITE_FIREBASE_PROJECT_ID=teenwork-4c9de\nVITE_FIREBASE_STORAGE_BUCKET=teenwork-4c9de.firebasestorage.app\nVITE_FIREBASE_MESSAGING_SENDER_ID=374398540771\nVITE_FIREBASE_APP_ID=1:374398540771:web:e17f14c480a27e4abe1ed6",
+                    "note": "This file should NOT be committed to git"
+                },
+                {
+                    "step": 3,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/firebase.ts",
+                    "changes": [
+                        {
+                            "changeType": "ADD_VALIDATION",
+                            "location": "Top of file, after imports",
+                            "addCode": "// Validate required environment variables\nconst requiredEnvVars = [\n  'VITE_FIREBASE_API_KEY',\n  'VITE_FIREBASE_AUTH_DOMAIN',\n  'VITE_FIREBASE_PROJECT_ID',\n  'VITE_FIREBASE_STORAGE_BUCKET',\n  'VITE_FIREBASE_MESSAGING_SENDER_ID',\n  'VITE_FIREBASE_APP_ID'\n];\n\nfor (const envVar of requiredEnvVars) {\n  if (!import.meta.env[envVar]) {\n    throw new Error(`Missing required environment variable: ${envVar}. Please check your .env.local file.`);\n  }\n}"
+                        },
+                        {
+                            "changeType": "REPLACE_CONFIG",
+                            "startLine": 11,
+                            "endLine": 18,
+                            "removeExact": "export const firebaseConfig = {\n  apiKey: \"AIzaSyBJzLMOzNWVHScG4yAwiXVDKDmFrGN8cAg\",\n  authDomain: \"teenwork-4c9de.firebaseapp.com\",\n  projectId: \"teenwork-4c9de\",\n  storageBucket: \"teenwork-4c9de.firebasestorage.app\",\n  messagingSenderId: \"374398540771\",\n  appId: \"1:374398540771:web:e17f14c480a27e4abe1ed6\"\n};",
+                            "replaceWith": "export const firebaseConfig = {\n  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,\n  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,\n  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,\n  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,\n  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,\n  appId: import.meta.env.VITE_FIREBASE_APP_ID\n};"
+                        }
+                    ]
+                },
+                {
+                    "step": 4,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/.gitignore",
+                    "changes": [
+                        {
+                            "changeType": "ENSURE_CONTAINS",
+                            "addLines": [
+                                "# Environment variables",
+                                ".env.local",
+                                ".env.*.local"
+                            ],
+                            "note": "Add these lines if they don't already exist"
+                        }
+                    ]
+                }
+            ],
+            "validation": [
+                "Verify .env.example exists and contains template variables",
+                "Verify .env.local exists with actual values",
+                "Verify .env.local is listed in .gitignore",
+                "Run: git status - .env.local should NOT appear in untracked files",
+                "Search firebase.ts for hardcoded API key - should return NO results",
+                "Run: npm run dev - should start successfully",
+                "Test: Rename .env.local temporarily - app should fail with clear error message",
+                "Test: Restore .env.local - app should work again"
+            ]
+        },
+        {
+            "taskId": "1.4",
+            "title": "Fix Memory Leak in Email Verification Page",
+            "severity": "CRITICAL",
+            "description": "Fix setInterval memory leak and remove window.location.reload()",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/components/EmailVerificationPage.tsx",
+                    "changes": [
+                        {
+                            "changeType": "REPLACE_EFFECT",
+                            "startLine": 17,
+                            "endLine": 28,
+                            "removeExact": "useEffect(() => {\n  const interval = setInterval(async () => {\n    if (auth.currentUser) {\n      await auth.currentUser.reload();\n      if (auth.currentUser.emailVerified) {\n        window.location.reload();\n      }\n    }\n  }, 3000);\n  return () => clearInterval(interval);\n}, []);",
+                            "replaceWith": "useEffect(() => {\n  let isMounted = true;\n  const interval = setInterval(async () => {\n    if (!isMounted || !auth.currentUser) return;\n    \n    try {\n      await auth.currentUser.reload();\n      if (isMounted && auth.currentUser.emailVerified) {\n        // Auth state change will be detected by App.tsx\n        // No need for page reload\n        clearInterval(interval);\n      }\n    } catch (error) {\n      if (isMounted) {\n        console.error('Error checking email verification:', error);\n      }\n    }\n  }, 3000);\n  \n  return () => {\n    isMounted = false;\n    clearInterval(interval);\n  };\n}, []);"
+                        }
+                    ]
+                }
+            ],
+            "validation": [
+                "Search for 'window.location.reload()' - should return NO results in EmailVerificationPage.tsx",
+                "Verify isMounted flag is used correctly",
+                "Test: Sign up as teen, verify email in another tab, check that dashboard appears without page reload",
+                "Use React DevTools Profiler to check for memory leaks",
+                "Verify interval is cleared on component unmount"
+            ]
+        },
+        {
+            "taskId": "1.5",
+            "title": "Add Image Upload Validation",
+            "severity": "CRITICAL",
+            "description": "Create image validation utility and integrate into login pages",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "CREATE_FILE",
+                    "file": "teenwork/utils/imageValidation.ts",
+                    "content": "export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];\nexport const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB\nexport const MAX_IMAGE_DIMENSION = 4096;\n\nexport interface ImageValidationResult {\n  valid: boolean;\n  error?: string;\n}\n\nexport async function validateImage(file: File): Promise<ImageValidationResult> {\n  // Check file type\n  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {\n    return { \n      valid: false, \n      error: 'סוג קובץ לא נתמך. אנא העלה תמונת JPG, PNG או WebP.' \n    };\n  }\n  \n  // Check file size\n  if (file.size > MAX_IMAGE_SIZE_BYTES) {\n    return { \n      valid: false, \n      error: 'התמונה גדולה מדי. גודל מקסימלי: 5MB.' \n    };\n  }\n  \n  // Check image dimensions\n  return new Promise((resolve) => {\n    const img = new Image();\n    const url = URL.createObjectURL(file);\n    \n    img.onload = () => {\n      URL.revokeObjectURL(url);\n      if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {\n        resolve({ \n          valid: false, \n          error: 'רזולוציית התמונה גבוהה מדי. מקסימום: 4096x4096 פיקסלים.' \n        });\n      } else {\n        resolve({ valid: true });\n      }\n    };\n    \n    img.onerror = () => {\n      URL.revokeObjectURL(url);\n      resolve({ \n        valid: false, \n        error: 'קובץ התמונה פגום או לא תקין.' \n      });\n    };\n    \n    img.src = url;\n  });\n}"
+                },
+                {
+                    "step": 2,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/components/TeenLoginPage.tsx",
+                    "changes": [
+                        {
+                            "changeType": "ADD_IMPORT",
+                            "location": "Top of file with other imports",
+                            "addCode": "import { validateImage } from '../utils/imageValidation';"
+                        },
+                        {
+                            "changeType": "REPLACE_FUNCTION",
+                            "functionName": "handleImageChange",
+                            "startLine": 27,
+                            "endLine": 33,
+                            "replaceWith": "const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {\n  if (e.target.files && e.target.files[0]) {\n    const file = e.target.files[0];\n    \n    // Validate image\n    const validation = await validateImage(file);\n    if (!validation.valid) {\n      setError(validation.error || 'תמונה לא תקינה');\n      e.target.value = ''; // Reset file input\n      return;\n    }\n    \n    setProfileImage(file);\n    setImagePreview(URL.createObjectURL(file));\n    setError(''); // Clear any previous errors\n  }\n};"
+                        }
+                    ]
+                },
+                {
+                    "step": 3,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/components/EmployerLoginPage.tsx",
+                    "changes": [
+                        {
+                            "changeType": "ADD_IMPORT",
+                            "location": "Top of file with other imports",
+                            "addCode": "import { validateImage } from '../utils/imageValidation';"
+                        },
+                        {
+                            "changeType": "REPLACE_FUNCTION",
+                            "functionName": "handleImageChange",
+                            "startLine": 26,
+                            "endLine": 32,
+                            "replaceWith": "const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {\n  if (e.target.files && e.target.files[0]) {\n    const file = e.target.files[0];\n    \n    // Validate image\n    const validation = await validateImage(file);\n    if (!validation.valid) {\n      setError(validation.error || 'תמונה לא תקינה');\n      e.target.value = ''; // Reset file input\n      return;\n    }\n    \n    setProfileImage(file);\n    setImagePreview(URL.createObjectURL(file));\n    setError(''); // Clear any previous errors\n  }\n};"
+                        }
+                    ]
+                }
+            ],
+            "validation": [
+                "Test: Upload .pdf file - should show Hebrew error message",
+                "Test: Upload 10MB image - should show size error",
+                "Test: Upload valid 1MB JPG - should succeed",
+                "Test: Upload valid PNG - should succeed",
+                "Test: Upload corrupted image file - should show error",
+                "Verify file input is reset when validation fails",
+                "Verify error messages are displayed in Hebrew"
+            ]
+        },
+        {
+            "taskId": "1.6",
+            "title": "Move Google GenAI to Backend (Documentation)",
+            "severity": "CRITICAL",
+            "description": "Comment out AI API usage and create backend TODO documentation",
+            "actions": [
+                {
+                    "step": 1,
+                    "action": "MODIFY_FILE",
+                    "file": "teenwork/components/JobDetailPage.tsx",
+                    "changes": [
+                        {
+                            "changeType": "ADD_COMMENT",
+                            "location": "Line 17 (before AI code)",
+                            "addCode": "  // ============================================================\n  // TODO: SECURITY - Move Google GenAI to Firebase Cloud Function\n  // ============================================================\n  // API keys must NEVER be exposed in frontend code.\n  // This functionality has been temporarily disabled.\n  // See docs/BACKEND_TODO.md for implementation requirements.\n  // Using Haversine formula fallback for distance calculation.\n  // ============================================================"
+                        },
+                        {
+                            "changeType": "COMMENT_OUT_CODE",
+                            "startLine": 23,
+                            "endLine": 56,
+                            "description": "Comment out entire Google GenAI implementation block"
+                        },
+                        {
+                            "changeType": "VERIFY_FALLBACK",
+                            "description": "Ensure Haversine formula fallback is working correctly for distance calculation"
+                        }
+                    ]
+                },
+                {
+                    "step": 2,
+                    "action": "CREATE_FILE",
+                    "file": "teenwork/docs/BACKEND_TODO.md",
+                    "content": "# Backend Implementation Required\n\n## Google GenAI Distance Calculation\n\n**Priority**: HIGH  \n**Status**: Frontend implementation removed due to security concerns  \n**Date Removed**: 2026-02-09\n\n### Problem\nThe Google GenAI API was being called directly from the frontend with an exposed API key. This is a critical security vulnerability as:\n- API keys are visible in client-side code\n- Anyone can extract and abuse the API key\n- No rate limiting or cost control\n- Violates security best practices\n\n### Required Solution\nCreate a Firebase Cloud Function to handle AI-powered distance calculations securely.\n\n### Implementation Requirements\n\n#### 1. Create Cloud Function: `calculateJobDistance`\n\n**Input:**\n```typescript\n{\n  userLocation: { lat: number, lng: number },\n  jobLocation: { lat: number, lng: number }\n}\n```\n\n**Output:**\n```typescript\n{\n  distance: number,\n  distanceText: string,\n  mapsLink: string\n}\n```\n\n#### 2. Security Requirements\n- API key stored in Cloud Functions environment variables\n- Implement rate limiting (max 100 requests/user/day)\n- Validate input coordinates\n- Add request logging for monitoring\n- Implement Firebase App Check for request verification\n\n#### 3. Performance Requirements\n- Cache results for identical location pairs (24 hour TTL)\n- Fallback to Haversine formula if AI API fails\n- Response time < 500ms\n\n#### 4. Cost Control\n- Set monthly budget alerts\n- Implement request quotas per user\n- Monitor API usage in Firebase Console\n\n### Current Workaround\nUsing basic Haversine formula for straight-line distance calculation:\n- Provides approximate distance in kilometers\n- No traffic or route information\n- Instant calculation, no API calls\n- Labeled as \"קו אווירי\" (straight line)\n\n### Migration Steps\n1. Set up Firebase Cloud Functions in project\n2. Implement `calculateJobDistance` function\n3. Add environment variable for GenAI API key\n4. Deploy function to Firebase\n5. Update `JobDetailPage.tsx` to call Cloud Function\n6. Test thoroughly before removing Haversine fallback\n7. Monitor costs and usage\n\n### Estimated Effort\n- Development: 4-6 hours\n- Testing: 2 hours\n- Deployment & monitoring setup: 2 hours\n- **Total: 8-10 hours**\n\n### References\n- [Firebase Cloud Functions Documentation](https://firebase.google.com/docs/functions)\n- [Google GenAI API Documentation](https://ai.google.dev/docs)\n- [Firebase App Check](https://firebase.google.com/docs/app-check)"
+                }
+            ],
+            "validation": [
+                "Verify NO API keys exist in JobDetailPage.tsx",
+                "Verify TODO comments are clear and visible",
+                "Verify docs/BACKEND_TODO.md exists and is comprehensive",
+                "Test job detail page - distance should still be calculated using Haversine",
+                "Verify distance is labeled as \"קו אווירי\" (straight line)"
+            ]
+        }
+    ],
+    "postConditions": [
+        "NO hardcoded credentials anywhere in codebase",
+        "NO AdminSetup or AdminPasswordReset files exist",
+        "Environment variables properly configured in .env.local",
+        ".env.local is gitignored and NOT committed",
+        "NO memory leaks in email verification flow",
+        "Image uploads are validated for type, size, and dimensions",
+        "NO API keys exposed in frontend code",
+        "Backend TODO documentation exists",
+        "Application runs without errors: npm run dev",
+        "All validation tests pass"
+    ],
+    "finalValidation": {
+        "securityAudit": [
+            "Run: grep -r 'AIzaSy' teenwork/src/ - should return NO results",
+            "Run: grep -r 'isaacnachshon' teenwork/ - should return NO results",
+            "Run: grep -r 'AdminSetup' teenwork/ - should return NO results",
+            "Verify .env.local is in .gitignore",
+            "Run: git status - verify .env.local is NOT tracked"
+        ],
+        "functionalTests": [
+            "npm run dev - application starts successfully",
+            "Test teen signup and login flow",
+            "Test employer signup and login flow",
+            "Test image upload with invalid file - shows error",
+            "Test image upload with valid file - succeeds",
+            "Test email verification flow - no page reload",
+            "Test job detail page - distance calculated"
+        ],
+        "codeQuality": [
+            "No TypeScript errors: npm run type-check",
+            "No ESLint errors: npm run lint",
+            "All files properly formatted"
+        ]
+    },
+    "rollbackProcedure": "If any task fails and cannot be fixed:\n1. Commit working changes so far\n2. Create rollback branch: git checkout -b phase-1-rollback\n3. Revert problematic changes: git revert <commit-hash>\n4. Document issue in PHASE_1_ISSUES.md\n5. Seek human assistance before proceeding",
+    "deliverables": [
+        "Deleted files: AdminSetup.tsx, AdminPasswordReset.tsx",
+        "Modified files: App.tsx, firebase.ts, .gitignore, TeenLoginPage.tsx, EmployerLoginPage.tsx, EmailVerificationPage.tsx, JobDetailPage.tsx",
+        "New files: .env.example, .env.local, utils/imageValidation.ts, docs/BACKEND_TODO.md",
+        "Validation report: PHASE_1_VALIDATION_REPORT.md"
+    ],
+    "successCriteria": {
+        "security": "Zero hardcoded credentials, zero exposed API keys",
+        "functionality": "All existing features work correctly",
+        "quality": "Zero errors, zero warnings",
+        "documentation": "All changes documented, backend requirements clear"
+    }
+}

@@ -1,0 +1,196 @@
+{
+    "phase": 2,
+    "name": "Remove Hardcoded Data & Implement Firestore Integration",
+    "priority": "HIGH",
+    "estimatedTimeHours": 24,
+    "description": "Replace all mock/hardcoded data with real Firestore queries. Create proper data architecture and implement CRUD operations for jobs, applications, and user profiles.",
+    "objectives": [
+        "Design and implement complete Firestore database schema",
+        "Replace all hardcoded job data with Firestore collections",
+        "Replace hardcoded applicant data with real applications",
+        "Remove picsum.photos and ui-avatars.com dependencies",
+        "Implement proper data fetching hooks and services"
+    ],
+    "tasks": [
+        {
+            "id": "2.1",
+            "title": "Design Firestore Database Schema",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/docs/DATABASE_SCHEMA.md"
+            ],
+            "actions": [
+                {
+                    "type": "CREATE_DOCUMENTATION",
+                    "target": "teenwork/docs/DATABASE_SCHEMA.md",
+                    "content": "# Firestore Database Schema\n\n## Collections:\n\n### users/{userId}\n```\n{\n  uid: string\n  email: string\n  role: 'teen' | 'employer' | 'admin'\n  createdAt: timestamp\n  // Teen-specific fields\n  name?: string\n  age?: number\n  location?: string\n  coordinates?: { lat: number, lng: number }\n  profileImageUrl?: string\n  bio?: string\n  skills?: string[]\n  preferredJobTypes?: string[]\n  workHistory?: Array<{id, title, company, duration}>\n  reviews?: Array<{id, reviewer, rating, comment}>\n  // Employer-specific fields\n  companyName?: string\n  companyLogoUrl?: string\n  companyAddress?: string\n  companyDescription?: string\n  fullName?: string\n  idNumber?: string\n  phone?: string\n}\n```\n\n### jobs/{jobId}\n```\n{\n  id: string\n  employerId: string (ref to users)\n  title: string\n  company: string\n  location: string\n  coordinates: { lat: number, lng: number }\n  salary: number\n  type: JobType\n  description: string\n  skills?: string[]\n  experience?: string\n  days?: string[]\n  startTime?: string\n  endTime?: string\n  status: 'active' | 'closed' | 'draft'\n  createdAt: timestamp\n  updatedAt: timestamp\n  applicationsCount: number\n}\n```\n\n### applications/{applicationId}\n```\n{\n  id: string\n  jobId: string (ref to jobs)\n  teenId: string (ref to users)\n  employerId: string (ref to users)\n  status: 'new' | 'viewed' | 'contacted' | 'rejected' | 'accepted'\n  message?: string\n  appliedAt: timestamp\n  updatedAt: timestamp\n}\n```\n\n### reviews/{reviewId}\n```\n{\n  id: string\n  reviewerId: string (ref to users)\n  revieweeId: string (ref to users)\n  jobId?: string (ref to jobs)\n  rating: number (1-5)\n  comment: string\n  createdAt: timestamp\n}\n```\n\n## Indexes Required:\n- jobs: (status, createdAt)\n- jobs: (employerId, status)\n- applications: (jobId, status)\n- applications: (teenId, status)\n- applications: (employerId, status)"
+                }
+            ]
+        },
+        {
+            "id": "2.2",
+            "title": "Create Firestore Service Layer",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/services/jobService.ts",
+                "teenwork/services/userService.ts",
+                "teenwork/services/applicationService.ts"
+            ],
+            "actions": [
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/services/jobService.ts",
+                    "implementation": "Export functions: getAllJobs(), getJobById(), createJob(), updateJob(), deleteJob(), getJobsByEmployer(), searchJobs()"
+                },
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/services/userService.ts",
+                    "implementation": "Export functions: getUserProfile(), updateUserProfile(), uploadProfileImage()"
+                },
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/services/applicationService.ts",
+                    "implementation": "Export functions: createApplication(), getApplicationsByJob(), getApplicationsByTeen(), updateApplicationStatus()"
+                }
+            ]
+        },
+        {
+            "id": "2.3",
+            "title": "Replace Hardcoded Jobs in TeenDashboard",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/components/dashboards/TeenDashboard.tsx"
+            ],
+            "actions": [
+                {
+                    "type": "MODIFY_FILE",
+                    "target": "teenwork/components/dashboards/TeenDashboard.tsx",
+                    "changes": [
+                        {
+                            "action": "REMOVE_CONSTANT",
+                            "name": "jobs",
+                            "reason": "Replace with Firestore query"
+                        },
+                        {
+                            "action": "ADD_STATE",
+                            "code": "const [jobs, setJobs] = useState<Job[]>([]);\nconst [isLoadingJobs, setIsLoadingJobs] = useState(true);"
+                        },
+                        {
+                            "action": "ADD_EFFECT",
+                            "code": "useEffect(() => {\n  const fetchJobs = async () => {\n    setIsLoadingJobs(true);\n    try {\n      const fetchedJobs = await jobService.getAllJobs();\n      setJobs(fetchedJobs);\n    } catch (error) {\n      console.error('Error fetching jobs:', error);\n    } finally {\n      setIsLoadingJobs(false);\n    }\n  };\n  fetchJobs();\n}, []);"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "2.4",
+            "title": "Replace Hardcoded Applicants in EmployerDashboard",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/components/dashboards/EmployerDashboard.tsx"
+            ],
+            "actions": [
+                {
+                    "type": "SIMILAR_TO",
+                    "reference": "task 2.3",
+                    "difference": "Replace applicants array with applicationService.getApplicationsByEmployer()"
+                }
+            ]
+        },
+        {
+            "id": "2.5",
+            "title": "Remove initialUserProfile Hardcoded Data",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/components/dashboards/TeenDashboard.tsx"
+            ],
+            "actions": [
+                {
+                    "type": "MODIFY_FILE",
+                    "changes": [
+                        {
+                            "action": "REMOVE_CONSTANT",
+                            "name": "initialUserProfile",
+                            "reason": "Already fetching from Firestore, no need for default"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "2.6",
+            "title": "Remove External Image Service Dependencies",
+            "severity": "HIGH",
+            "files": [
+                "multiple"
+            ],
+            "actions": [
+                {
+                    "type": "FIND_AND_REPLACE",
+                    "pattern": "https://picsum.photos/",
+                    "replacement": "DEFAULT_AVATAR_URL",
+                    "files": [
+                        "teenwork/components/**/*.tsx"
+                    ]
+                },
+                {
+                    "type": "CREATE_CONSTANTS",
+                    "target": "teenwork/utils/constants.ts",
+                    "content": "export const DEFAULT_AVATAR_URL = '/assets/default-avatar.png';\nexport const DEFAULT_COMPANY_LOGO_URL = '/assets/default-company.png';"
+                },
+                {
+                    "type": "ADD_ASSETS",
+                    "target": "teenwork/public/assets/",
+                    "note": "Add default-avatar.png and default-company.png placeholder images"
+                }
+            ]
+        },
+        {
+            "id": "2.7",
+            "title": "Implement Job CRUD Operations in EmployerDashboard",
+            "severity": "HIGH",
+            "files": [
+                "teenwork/components/dashboards/EmployerDashboard.tsx"
+            ],
+            "actions": [
+                {
+                    "type": "MODIFY_FILE",
+                    "changes": [
+                        {
+                            "action": "UPDATE_FUNCTION",
+                            "name": "handlePostJob",
+                            "implementation": "Call jobService.createJob() with employerId and job data. Update local state on success."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "2.8",
+            "title": "Add Firebase Seed Data Script",
+            "severity": "MEDIUM",
+            "files": [
+                "teenwork/scripts/seedData.ts"
+            ],
+            "actions": [
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/scripts/seedData.ts",
+                    "content": "Script to populate Firestore with sample jobs, users (non-admin), and applications for development/testing. Should be run manually, not in production."
+                }
+            ]
+        }
+    ],
+    "dependencies": [
+        "phase-1-security"
+    ],
+    "postConditions": [
+        "No hardcoded jobs exist",
+        "No hardcoded applicants exist",
+        "All data comes from Firestore",
+        "Service layer is implemented",
+        "No external image service dependencies",
+        "Seed data script exists for development"
+    ]
+}

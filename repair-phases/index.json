@@ -1,0 +1,207 @@
+{
+    "index": {
+        "projectName": "TeenWork Code Review & Repair",
+        "version": "1.0.0",
+        "created": "2026-01-19",
+        "totalPhases": 8,
+        "estimatedTotalHours": 118,
+        "overview": "Systematic repair plan to fix all identified issues in the TeenWork application. Phases must be executed in order due to dependencies.",
+        "phases": [
+            {
+                "phase": 1,
+                "name": "Critical Security Fixes",
+                "file": "phase-1-security.json",
+                "priority": "CRITICAL",
+                "status": "pending",
+                "estimatedHours": 8,
+                "mustCompleteFirst": true,
+                "description": "Remove security vulnerabilities, hardcoded credentials, and fix memory leaks",
+                "keyDeliverables": [
+                    "Remove AdminSetup and AdminPasswordReset utilities",
+                    "Implement environment variables for Firebase config",
+                    "Fix memory leak in EmailVerificationPage",
+                    "Add image upload validation",
+                    "Remove AI API key from frontend"
+                ]
+            },
+            {
+                "phase": 2,
+                "name": "Remove Hardcoded Data & Implement Firestore Integration",
+                "file": "phase-2-data-integration.json",
+                "priority": "HIGH",
+                "status": "pending",
+                "estimatedHours": 24,
+                "dependencies": [
+                    1
+                ],
+                "description": "Replace all mock data with real Firestore queries and implement complete data architecture",
+                "keyDeliverables": [
+                    "Design and document Firestore schema",
+                    "Create service layer for data operations",
+                    "Replace hardcoded jobs and applicants",
+                    "Remove external image service dependencies",
+                    "Add seed data script"
+                ]
+            },
+            {
+                "phase": 3,
+                "name": "Error Handling & User Feedback",
+                "file": "phase-3-error-handling.json",
+                "priority": "HIGH",
+                "status": "pending",
+                "estimatedHours": 16,
+                "dependencies": [
+                    2
+                ],
+                "description": "Implement comprehensive error handling, loading states, and user feedback",
+                "keyDeliverables": [
+                    "Add React Error Boundaries",
+                    "Implement loading states and skeletons",
+                    "Add toast notification system",
+                    "Remove all console.log statements",
+                    "Add try-catch to all async operations"
+                ]
+            },
+            {
+                "phase": 4,
+                "name": "Code Deduplication & Refactoring",
+                "file": "phase-4-refactoring.json",
+                "priority": "MEDIUM",
+                "status": "pending",
+                "estimatedHours": 20,
+                "dependencies": [
+                    3
+                ],
+                "description": "Eliminate code duplication and refactor for maintainability",
+                "keyDeliverables": [
+                    "Create shared useAuth hook",
+                    "Extract common form components",
+                    "Consolidate validation logic",
+                    "Refactor login pages to reduce duplication"
+                ]
+            },
+            {
+                "phase": 5,
+                "name": "Performance Optimization",
+                "file": "phase-5-performance.json",
+                "priority": "MEDIUM",
+                "status": "pending",
+                "estimatedHours": 12,
+                "dependencies": [
+                    4
+                ],
+                "description": "Optimize bundle size, implement code splitting, and improve performance",
+                "keyDeliverables": [
+                    "Implement lazy loading and code splitting",
+                    "Add memoization (useMemo, useCallback, React.memo)",
+                    "Optimize Firestore queries with indexes",
+                    "Add React Query for caching",
+                    "Optimize icons import"
+                ]
+            },
+            {
+                "phase": 6,
+                "name": "TypeScript & Code Quality",
+                "file": "phase-6-typescript-quality.json",
+                "priority": "MEDIUM",
+                "status": "pending",
+                "estimatedHours": 10,
+                "dependencies": [
+                    4
+                ],
+                "description": "Enable TypeScript strict mode, add linting, formatting, and pre-commit hooks",
+                "keyDeliverables": [
+                    "Enable TypeScript strict mode",
+                    "Fix all type errors",
+                    "Enhance ESLint configuration",
+                    "Add Prettier for code formatting",
+                    "Add pre-commit hooks with Husky"
+                ]
+            },
+            {
+                "phase": 7,
+                "name": "Testing & Documentation",
+                "file": "phase-7-testing-docs.json",
+                "priority": "MEDIUM",
+                "status": "pending",
+                "estimatedHours": 16,
+                "dependencies": [
+                    6
+                ],
+                "description": "Add comprehensive testing suite and documentation",
+                "keyDeliverables": [
+                    "Setup testing infrastructure (Vitest)",
+                    "Write unit tests for utilities and hooks",
+                    "Write component tests",
+                    "Add E2E tests with Playwright",
+                    "Create comprehensive documentation"
+                ]
+            },
+            {
+                "phase": 8,
+                "name": "Accessibility & UX Enhancements",
+                "file": "phase-8-accessibility-ux.json",
+                "priority": "LOW",
+                "status": "completed",
+                "completedDate": "2026-02-09",
+                "estimatedHours": 12,
+                "actualHours": 6,
+                "dependencies": [
+                    7
+                ],
+                "description": "Add accessibility features, dark mode, and internationalization",
+                "keyDeliverables": [
+                    "Add ARIA attributes and keyboard navigation",
+                    "Fix color contrast issues",
+                    "Implement dark mode",
+                    "Add internationalization (i18n)",
+                    "Achieve WCAG 2.1 AA compliance"
+                ]
+            }
+        ],
+        "executionGuidelines": {
+            "sequenceRequirement": "Phases must be executed in numerical order due to dependencies",
+            "qualityStandards": {
+                "noErrors": "Zero TypeScript errors, zero ESLint errors after each phase",
+                "noHardcoding": "No hardcoded data, credentials, or magic values",
+                "noDisconnects": "All components must integrate with real data sources",
+                "noMocksInProduction": "No fake data, mocks, or stubs in production code"
+            },
+            "validationRequirements": {
+                "afterEachTask": "Run validation steps listed in task definition",
+                "afterEachPhase": "Verify all postConditions are met",
+                "beforeNextPhase": "Ensure previous phase is 100% complete and tested"
+            },
+            "rollbackStrategy": "Each phase should be in its own git commit. If phase fails, revert to previous phase commit.",
+            "documentation": "Update README.md and CHANGELOG.md after each phase completion"
+        },
+        "criticalRules": [
+            "NO hardcoded credentials or API keys",
+            "NO mock data in production",
+            "NO console.log statements",
+            "NO external dependencies without validation",
+            "NO security vulnerabilities",
+            "ALL data must come from Firestore",
+            "ALL errors must be handled",
+            "ALL components must have loading states",
+            "ALL async operations must have try-catch",
+            "ALL changes must be tested"
+        ],
+        "successCriteria": {
+            "functional": "Application has real job matching functionality with actual data",
+            "performance": "Lighthouse score >90 across all metrics",
+            "security": "No exposed credentials, proper Firebase Security Rules",
+            "quality": "Zero TypeScript/ESLint errors, >80% test coverage",
+            "accessibility": "WCAG 2.1 AA compliant, keyboard navigable",
+            "maintainability": "Well-documented, DRY code, clear architecture"
+        },
+        "notes": [
+            "Phase 1 (Security) is CRITICAL and must be completed immediately",
+            "Phases 2-3 transform the app from prototype to production",
+            "Phases 4-6 improve code quality and maintainability",
+            "Phases 7-8 add professional polish and accessibility",
+            "Total estimated time: ~3 weeks of focused development",
+            "Can be parallelized across multiple developers after Phase 3"
+        ]
+    }
+}

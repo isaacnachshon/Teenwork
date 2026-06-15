@@ -1,0 +1,7 @@
+{
+  "name": "TEENWORK",
+  "description": "An application for teens in Israel to find temporary jobs, share experiences, and build communities. The app provides tailored dashboards for teens, employers, and administrators.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

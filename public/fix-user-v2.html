@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix User V2 - TeenWork</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin: 25px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-right: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #0f0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
+        }
+
+        .warning {
+            color: #ffd43b;
+        }
+
+        .info {
+            color: #74c0fc;
+        }
+
+        .step {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-right: 3px solid #51cf66;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Fix User Account V2 - TeenWork</h1>
+        <p class="subtitle">Easy tool to fix users that exist in Auth but not in Firestore</p>
+
+        <div class="section">
+            <h2>📋 Instructions</h2>
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Log in with Firebase Admin</strong>: First, authenticate as an admin to access Firebase.
+            </div>
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>List all Auth users</strong>: This requires Firebase Admin SDK (server-side). For now, manually
+                get the UID from Firebase Console.
+            </div>
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Create Firestore Document</strong>: Fill in the user details and UID to create the missing
+                Firestore record.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Manual Fix (Requires UID)</h2>
+            <p><strong>Step 1:</strong> Get UID from <a
+                    href="https://console.firebase.google.com/project/teenwork-ab7f9/authentication/users"
+                    target="_blank">Firebase Console → Authentication → Users</a></p>
+
+            <input type="text" id="uid" placeholder="Paste User UID here (from Firebase Console)">
+            <input type="email" id="email" placeholder="Email address (e.g., orinachshon136@gmail.com)">
+            <input type="text" id="name" placeholder="Full Name (or Company Name)">
+            <select id="role">
+                <option value="teen">Teen (נוער)</option>
+                <option value="employer">Employer (מעסיק)</option>
+                <option value="admin">Admin (מנהל)</option>
+            </select>
+            <button onclick="createFirestoreDoc()">✅ Create Firestore Document</button>
+        </div>
+
+        <div class="section">
+            <h2>🔎 Search Existing User</h2>
+            <input type="email" id="searchEmail" placeholder="Search by email address">
+            <button onclick="searchUser()">🔍 Search in Firestore</button>
+        </div>
+
+        <div id="output" class="output" style="display:none;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdvPj0jLPmSrgPTcovF6mDy-GGdN2_S5A",
+            authDomain: "teenwork-ab7f9.firebaseapp.com",
+            projectId: "teenwork-ab7f9",
+            storageBucket: "teenwork-ab7f9.firebasestorage.app",
+            messagingSenderId: "374398540771",
+            appId: "1:374398540771:web:34a52d23095cf5d354fc4d",
+            measurementId: "G-TCXES72Q92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.log = function (message, type = 'success') {
+            const output = document.getElementById('output');
+            output.style.display = 'block';
+            const div = document.createElement('div');
+            div.className = type;
+            const time = new Date().toLocaleTimeString('he-IL');
+            div.textContent = `[${time}] ${message}`;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        };
+
+        window.searchUser = async function () {
+            const email = document.getElementById('searchEmail').value.trim();
+            if (!email) {
+                alert('Please enter an email address');
+                return;
+            }
+
+            try {
+                log(`🔍 Searching for: ${email}`, 'info');
+
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('email', '==', email));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    log(`❌ NOT FOUND in Firestore`, 'error');
+                    log(`This user exists in Auth but needs a Firestore document.`, 'warning');
+                    document.getElementById('email').value = email;
+                } else {
+                    querySnapshot.forEach((docSnap) => {
+                        log(`✅ FOUND in Firestore:`, 'success');
+                        log(`UID: ${docSnap.id}`, 'info');
+                        log(`Data: ${JSON.stringify(docSnap.data(), null, 2)}`, 'info');
+
+                        // Pre-fill form
+                        document.getElementById('uid').value = docSnap.id;
+                        document.getElementById('email').value = docSnap.data().email;
+                        document.getElementById('name').value = docSnap.data().name || docSnap.data().companyName || '';
+                        document.getElementById('role').value = docSnap.data().role;
+                    });
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        window.createFirestoreDoc = async function () {
+            const uid = document.getElementById('uid').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const role = document.getElementById('role').value;
+
+            if (!uid || !email || !name) {
+                alert('⚠️ Please fill in all fields: UID, Email, and Name');
+                return;
+            }
+
+            try {
+                log(`📝 Creating Firestore document...`, 'info');
+                log(`UID: ${uid}`, 'info');
+                log(`Email: ${email}`, 'info');
+                log(`Name: ${name}`, 'info');
+                log(`Role: ${role}`, 'info');
+
+                // Check if already exists
+                const docRef = doc(db, 'users', uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    log(`⚠️ Document already exists!`, 'warning');
+                    log(`Existing data: ${JSON.stringify(docSnap.data(), null, 2)}`, 'info');
+
+                    const overwrite = confirm('Document already exists. Overwrite?');
+                    if (!overwrite) {
+                        log(`❌ Operation cancelled`, 'error');
+                        return;
+                    }
+                }
+
+                const userData = {
+                    uid: uid,
+                    email: email,
+                    role: role,
+                    createdAt: new Date(),
+                };
+
+                if (role === 'teen') {
+                    userData.name = name;
+                } else if (role === 'employer') {
+                    userData.companyName = name;
+                } else {
+                    userData.name = name;
+                }
+
+                await setDoc(docRef, userData);
+
+                log(`✅ SUCCESS! Firestore document created!`, 'success');
+                log(`User should now appear in admin dashboard.`, 'success');
+                log(`Try logging in with: ${email}`, 'info');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        log('🚀 Fix User Tool V2 Ready!', 'success');
+        log('Fill in the UID, email, name, and role to create the Firestore document.', 'info');
+    </script>
+</body>
+
+</html>

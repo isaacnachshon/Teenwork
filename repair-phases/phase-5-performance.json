@@ -1,0 +1,112 @@
+{
+    "phase": 5,
+    "name": "Performance Optimization",
+    "priority": "MEDIUM",
+    "estimatedTimeHours": 12,
+    "description": "Optimize bundle size, implement code splitting, add memoization, optimize images and Firestore queries.",
+    "objectives": [
+        "Implement lazy loading and code splitting",
+        "Add React.memo and useMemo optimizations",
+        "Optimize Firestore queries with indexes",
+        "Implement image optimization",
+        "Add caching strategies"
+    ],
+    "tasks": [
+        {
+            "id": "5.1",
+            "title": "Implement Code Splitting",
+            "actions": [
+                {
+                    "type": "ADD_LAZY_LOADING",
+                    "components": [
+                        "TeenDashboard",
+                        "EmployerDashboard",
+                        "AdminDashboard",
+                        "LandingPage"
+                    ],
+                    "implementation": "const TeenDashboard = lazy(() => import('./components/dashboards/TeenDashboard'));"
+                },
+                {
+                    "type": "ADD_SUSPENSE",
+                    "wrappers": "Wrap lazy components with React.Suspense and loading fallback"
+                }
+            ]
+        },
+        {
+            "id": "5.2",
+            "title": "Add Memoization",
+            "actions": [
+                {
+                    "type": "ADD_USE_CALLBACK",
+                    "description": "Wrap event handlers in useCallback where passed as props"
+                },
+                {
+                    "type": "ADD_USE_MEMO",
+                    "description": "Memoize expensive computations (nearbyJobs calculation, filteredJobs, etc.)"
+                },
+                {
+                    "type": "ADD_REACT_MEMO",
+                    "components": [
+                        "JobCard",
+                        "StatCard",
+                        "NavLink",
+                        "FormInput"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "5.3",
+            "title": "Optimize Firestore Queries",
+            "actions": [
+                {
+                    "type": "ADD_INDEXES",
+                    "description": "Create Firestore indexes based on DATABASE_SCHEMA.md"
+                },
+                {
+                    "type": "ADD_QUERY_LIMITS",
+                    "description": "Add .limit() to all collection queries"
+                },
+                {
+                    "type": "IMPLEMENT_PAGINATION",
+                    "description": "Add pagination to job listings using startAfter()"
+                }
+            ]
+        },
+        {
+            "id": "5.4",
+            "title": "Optimize Icons Import",
+            "actions": [
+                {
+                    "type": "REFACTOR_ICONS",
+                    "target": "teenwork/components/icons.tsx",
+                    "description": "Export individual icon components instead of barrel export to enable tree-shaking"
+                }
+            ]
+        },
+        {
+            "id": "5.5",
+            "title": "Add React Query for Server State",
+            "actions": [
+                {
+                    "type": "INSTALL_PACKAGE",
+                    "package": "@tanstack/react-query"
+                },
+                {
+                    "type": "IMPLEMENT_QUERIES",
+                    "description": "Replace useState/useEffect data fetching with useQuery hooks. Automatic caching and refetching."
+                }
+            ]
+        }
+    ],
+    "dependencies": [
+        "phase-4-refactoring"
+    ],
+    "postConditions": [
+        "Bundle size reduced by 30%+",
+        "Lazy loading implemented for all dashboards",
+        "Firestore queries have indexes",
+        "React Query caching reduces API calls",
+        "Performance score >90 in Lighthouse"
+    ]
+}

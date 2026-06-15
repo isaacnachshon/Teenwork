@@ -1,0 +1,104 @@
+{
+    "phase": 6,
+    "name": "TypeScript & Code Quality",
+    "priority": "MEDIUM",
+    "estimatedTimeHours": 10,
+    "description": "Enable TypeScript strict mode, fix type errors, add ESLint rules, improve code quality.",
+    "objectives": [
+        "Enable TypeScript strict mode",
+        "Fix all type errors",
+        "Add comprehensive ESLint configuration",
+        "Implement Prettier for code formatting",
+        "Add pre-commit hooks"
+    ],
+    "tasks": [
+        {
+            "id": "6.1",
+            "title": "Enable TypeScript Strict Mode",
+            "actions": [
+                {
+                    "type": "UPDATE_FILE",
+                    "target": "teenwork/tsconfig.json",
+                    "changes": {
+                        "strict": true,
+                        "noUncheckedIndexedAccess": true,
+                        "noImplicitReturns": true,
+                        "noFallthroughCasesInSwitch": true
+                    }
+                },
+                {
+                    "type": "FIX_TYPE_ERRORS",
+                    "description": "Address all TypeScript errors that appear after enabling strict mode"
+                }
+            ]
+        },
+        {
+            "id": "6.2",
+            "title": "Enhance ESLint Configuration",
+            "actions": [
+                {
+                    "type": "UPDATE_ESLINT",
+                    "target": "teenwork/.eslintrc.cjs",
+                    "addRules": [
+                        "no-console",
+                        "react-hooks/exhaustive-deps",
+                        "@typescript-eslint/no-explicit-any",
+                        "@typescript-eslint/no-unused-vars"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "6.3",
+            "title": "Add Prettier",
+            "actions": [
+                {
+                    "type": "INSTALL_PACKAGE",
+                    "packages": [
+                        "prettier",
+                        "eslint-config-prettier"
+                    ]
+                },
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/.prettierrc",
+                    "content": "{ \"semi\": true, \"singleQuote\": true, \"tabWidth\": 2 }"
+                },
+                {
+                    "type": "FORMAT_ALL_FILES",
+                    "command": "npm run format"
+                }
+            ]
+        },
+        {
+            "id": "6.4",
+            "title": "Add Pre-commit Hooks",
+            "actions": [
+                {
+                    "type": "INSTALL_PACKAGE",
+                    "packages": [
+                        "husky",
+                        "lint-staged"
+                    ]
+                },
+                {
+                    "type": "CONFIGURE_HUSKY",
+                    "hooks": {
+                        "pre-commit": "lint-staged",
+                        "pre-push": "npm run type-check"
+                    }
+                }
+            ]
+        }
+    ],
+    "dependencies": [
+        "phase-4-refactoring"
+    ],
+    "postConditions": [
+        "TypeScript strict mode enabled",
+        "Zero TypeScript errors",
+        "ESLint passing on all files",
+        "Code formatted with Prettier",
+        "Pre-commit hooks prevent bad commits"
+    ]
+}

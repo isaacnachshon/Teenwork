@@ -1,0 +1,228 @@
+{
+    "phases": [
+        {
+            "phase": 3,
+            "phaseName": "Error Handling & User Feedback",
+            "priority": "HIGH",
+            "estimatedHours": 16,
+            "agentRole": "Senior Frontend Developer & UX Engineer",
+            "objectives": [
+                "Add React Error Boundaries to catch rendering errors",
+                "Implement loading states for ALL async operations",
+                "Add comprehensive error handling to ALL Firebase operations",
+                "Remove ALL console.log statements",
+                "Implement toast notification system",
+                "Add form validation feedback"
+            ],
+            "criticalRules": [
+                "ALL async operations must have try-catch blocks",
+                "ALL data fetching must show loading states",
+                "NO console.log in production code",
+                "ALL errors must show user-friendly messages",
+                "ALL forms must have validation feedback"
+            ],
+            "keyTasks": [
+                "Create ErrorBoundary component and wrap dashboards",
+                "Create loading skeleton components",
+                "Install and configure react-hot-toast",
+                "Remove all console.log statements",
+                "Add try-catch to all async functions",
+                "Add loading states to all components"
+            ]
+        },
+        {
+            "phase": 4,
+            "phaseName": "Code Deduplication & Refactoring",
+            "priority": "MEDIUM",
+            "estimatedHours": 20,
+            "agentRole": "Software Architect & Refactoring Specialist",
+            "objectives": [
+                "Create shared useAuth custom hook",
+                "Extract common form components",
+                "Consolidate validation logic",
+                "Reduce code duplication by 400+ lines",
+                "Improve maintainability and DRY principles"
+            ],
+            "criticalRules": [
+                "NO duplicated code between login pages",
+                "ALL validation logic must be centralized",
+                "ALL auth operations must use shared hook",
+                "MAINTAIN all existing functionality"
+            ],
+            "keyTasks": [
+                "Create hooks/useAuth.ts with shared auth logic",
+                "Create shared/FormInput.tsx component",
+                "Create shared/GoogleSignInButton.tsx",
+                "Create utils/validation.ts with centralized validation",
+                "Refactor TeenLoginPage.tsx to use shared code",
+                "Refactor EmployerLoginPage.tsx to use shared code"
+            ]
+        },
+        {
+            "phase": 5,
+            "phaseName": "Performance Optimization",
+            "priority": "MEDIUM",
+            "estimatedHours": 12,
+            "agentRole": "Performance Engineer & Optimization Specialist",
+            "objectives": [
+                "Implement lazy loading and code splitting",
+                "Add React.memo and useMemo optimizations",
+                "Optimize Firestore queries with indexes",
+                "Implement React Query for caching",
+                "Reduce bundle size by 30%+"
+            ],
+            "criticalRules": [
+                "ALL dashboards must be lazy loaded",
+                "ALL expensive computations must be memoized",
+                "ALL Firestore queries must have .limit()",
+                "NO performance regressions"
+            ],
+            "keyTasks": [
+                "Add lazy loading to all dashboard components",
+                "Add React.Suspense with loading fallbacks",
+                "Wrap event handlers in useCallback",
+                "Memoize expensive calculations with useMemo",
+                "Add React.memo to pure components",
+                "Install and configure @tanstack/react-query",
+                "Add Firestore indexes",
+                "Implement pagination for job listings"
+            ]
+        },
+        {
+            "phase": 6,
+            "phaseName": "TypeScript & Code Quality",
+            "priority": "MEDIUM",
+            "estimatedHours": 10,
+            "agentRole": "TypeScript Expert & Code Quality Engineer",
+            "objectives": [
+                "Enable TypeScript strict mode",
+                "Fix ALL type errors",
+                "Add comprehensive ESLint rules",
+                "Implement Prettier for formatting",
+                "Add pre-commit hooks with Husky"
+            ],
+            "criticalRules": [
+                "ZERO TypeScript errors after completion",
+                "NO 'any' types allowed",
+                "ALL code must pass ESLint",
+                "ALL code must be Prettier formatted"
+            ],
+            "keyTasks": [
+                "Enable strict mode in tsconfig.json",
+                "Fix all resulting type errors",
+                "Update ESLint configuration",
+                "Install and configure Prettier",
+                "Install Husky and lint-staged",
+                "Configure pre-commit hooks"
+            ]
+        },
+        {
+            "phase": 7,
+            "phaseName": "Testing & Documentation",
+            "priority": "MEDIUM",
+            "estimatedHours": 16,
+            "agentRole": "QA Engineer & Technical Writer",
+            "objectives": [
+                "Set up Vitest testing infrastructure",
+                "Write unit tests for utilities and hooks",
+                "Write component tests",
+                "Add E2E tests with Playwright",
+                "Create comprehensive documentation",
+                "Achieve >80% test coverage"
+            ],
+            "criticalRules": [
+                "ALL utilities must have unit tests",
+                "ALL critical flows must have E2E tests",
+                "Test coverage must be >80%",
+                "ALL documentation must be accurate and complete"
+            ],
+            "keyTasks": [
+                "Install Vitest and testing libraries",
+                "Write tests for imageValidation.ts",
+                "Write tests for validation.ts",
+                "Write tests for useAuth hook",
+                "Install Playwright",
+                "Write E2E tests for auth flow",
+                "Write E2E tests for job application",
+                "Create README.md, API.md, ARCHITECTURE.md"
+            ]
+        },
+        {
+            "phase": 8,
+            "phaseName": "Accessibility & UX Enhancements",
+            "priority": "LOW",
+            "estimatedHours": 12,
+            "agentRole": "Accessibility Specialist & UX Designer",
+            "objectives": [
+                "Meet WCAG 2.1 Level AA standards",
+                "Add keyboard navigation support",
+                "Implement focus management",
+                "Add ARIA labels and roles",
+                "Implement dark mode",
+                "Add internationalization (i18n)"
+            ],
+            "criticalRules": [
+                "ALL interactive elements must be keyboard accessible",
+                "Lighthouse accessibility score must be >95",
+                "Color contrast must meet WCAG AA standards",
+                "ALL text must support i18n"
+            ],
+            "keyTasks": [
+                "Audit with axe-core or Lighthouse",
+                "Add ARIA labels to all interactive elements",
+                "Implement keyboard navigation (Tab, Enter, Escape)",
+                "Fix color contrast issues",
+                "Create theme system for dark mode",
+                "Install react-i18next",
+                "Extract all strings to translation files",
+                "Add language selector (Hebrew, English, Arabic)"
+            ]
+        }
+    ],
+    "crossPhaseGuidelines": {
+        "beforeStarting": [
+            "Verify previous phase is 100% complete",
+            "Read phase-specific JSON file in repair-phases/",
+            "Review investigation report for context",
+            "Create git branch for phase: git checkout -b phase-X-name"
+        ],
+        "duringExecution": [
+            "Follow tasks in exact order specified",
+            "Validate after each task completion",
+            "Commit working code frequently",
+            "Document any deviations or issues",
+            "Test continuously, not just at end"
+        ],
+        "afterCompletion": [
+            "Run all validation tests",
+            "Verify all postConditions are met",
+            "Create validation report",
+            "Commit final changes",
+            "Update phase status in index.json",
+            "Merge to main branch"
+        ]
+    },
+    "qualityStandards": {
+        "code": [
+            "Zero TypeScript errors",
+            "Zero ESLint errors",
+            "All code formatted with Prettier",
+            "No hardcoded values",
+            "No console.log statements",
+            "Comprehensive error handling"
+        ],
+        "functionality": [
+            "All existing features work",
+            "No regressions introduced",
+            "Loading states for async operations",
+            "User-friendly error messages",
+            "Proper validation feedback"
+        ],
+        "testing": [
+            "All validation tests pass",
+            "Manual testing completed",
+            "No broken functionality",
+            "Performance acceptable"
+        ]
+    }
+}

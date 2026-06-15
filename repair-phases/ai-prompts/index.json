@@ -1,0 +1,296 @@
+{
+    "projectName": "TeenWork Code Repair - AI Agent Prompts",
+    "version": "1.0.0",
+    "created": "2026-02-09",
+    "description": "Comprehensive AI agent prompts for systematic repair of TeenWork application across 8 phases",
+    "overview": {
+        "totalPhases": 8,
+        "estimatedTotalHours": 118,
+        "priority": "CRITICAL - Phase 1 must be completed immediately",
+        "approach": "Sequential execution - each phase depends on previous phase completion",
+        "investigationReport": "../INVESTIGATION_REPORT.md",
+        "originalPlanIndex": "../index.json"
+    },
+    "promptFiles": [
+        {
+            "phase": 1,
+            "file": "phase-1-prompt.json",
+            "name": "Critical Security Fixes",
+            "priority": "CRITICAL",
+            "hours": 8,
+            "mustCompleteFirst": true,
+            "description": "Remove security vulnerabilities, hardcoded credentials, and fix memory leaks",
+            "keyDeliverables": [
+                "Delete AdminSetup and AdminPasswordReset",
+                "Implement environment variables",
+                "Fix memory leak in EmailVerificationPage",
+                "Add image upload validation",
+                "Remove AI API key from frontend"
+            ]
+        },
+        {
+            "phase": 2,
+            "file": "phase-2-prompt.json",
+            "name": "Data Integration",
+            "priority": "HIGH",
+            "hours": 24,
+            "dependencies": [
+                1
+            ],
+            "description": "Replace all mock data with real Firestore queries",
+            "keyDeliverables": [
+                "Firestore schema documentation",
+                "Service layer for data operations",
+                "Remove hardcoded jobs and applicants",
+                "Remove external image dependencies",
+                "Seed data script"
+            ]
+        },
+        {
+            "phase": 3,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase3",
+            "name": "Error Handling & User Feedback",
+            "priority": "HIGH",
+            "hours": 16,
+            "dependencies": [
+                2
+            ],
+            "description": "Implement comprehensive error handling and user feedback",
+            "keyDeliverables": [
+                "Error Boundaries",
+                "Loading states",
+                "Toast notifications",
+                "Remove console.log",
+                "Form validation feedback"
+            ]
+        },
+        {
+            "phase": 4,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase4",
+            "name": "Code Deduplication & Refactoring",
+            "priority": "MEDIUM",
+            "hours": 20,
+            "dependencies": [
+                3
+            ],
+            "description": "Eliminate code duplication and refactor for maintainability",
+            "keyDeliverables": [
+                "useAuth custom hook",
+                "Shared form components",
+                "Centralized validation",
+                "Refactored login pages"
+            ]
+        },
+        {
+            "phase": 5,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase5",
+            "name": "Performance Optimization",
+            "priority": "MEDIUM",
+            "hours": 12,
+            "dependencies": [
+                4
+            ],
+            "description": "Optimize bundle size, implement code splitting, add caching",
+            "keyDeliverables": [
+                "Lazy loading",
+                "Memoization",
+                "React Query",
+                "Firestore indexes",
+                "Pagination"
+            ]
+        },
+        {
+            "phase": 6,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase6",
+            "name": "TypeScript & Code Quality",
+            "priority": "MEDIUM",
+            "hours": 10,
+            "dependencies": [
+                4
+            ],
+            "description": "Enable strict mode, add linting, formatting, pre-commit hooks",
+            "keyDeliverables": [
+                "TypeScript strict mode",
+                "ESLint configuration",
+                "Prettier setup",
+                "Husky pre-commit hooks"
+            ]
+        },
+        {
+            "phase": 7,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase7",
+            "name": "Testing & Documentation",
+            "priority": "MEDIUM",
+            "hours": 16,
+            "dependencies": [
+                6
+            ],
+            "description": "Add comprehensive testing suite and documentation",
+            "keyDeliverables": [
+                "Vitest setup",
+                "Unit tests",
+                "Component tests",
+                "E2E tests with Playwright",
+                "Comprehensive documentation"
+            ]
+        },
+        {
+            "phase": 8,
+            "file": "phases-3-8-prompts.json",
+            "section": "phase8",
+            "name": "Accessibility & UX Enhancements",
+            "priority": "LOW",
+            "hours": 12,
+            "dependencies": [
+                7
+            ],
+            "description": "Add accessibility features, dark mode, internationalization",
+            "keyDeliverables": [
+                "WCAG 2.1 AA compliance",
+                "Keyboard navigation",
+                "Dark mode",
+                "Internationalization (i18n)"
+            ]
+        }
+    ],
+    "usageInstructions": {
+        "forAIAgents": [
+            "Read the appropriate phase prompt file completely before starting",
+            "Follow tasks in exact sequential order",
+            "Validate after each task completion",
+            "Do NOT skip validation steps",
+            "Do NOT proceed to next phase until current phase is 100% complete",
+            "Document any issues or deviations",
+            "Create validation report at end of each phase"
+        ],
+        "forHumans": [
+            "Review investigation report first: ../INVESTIGATION_REPORT.md",
+            "Understand phase dependencies in ../index.json",
+            "Provide AI agent with appropriate phase prompt file",
+            "Monitor progress and validate deliverables",
+            "Review validation reports after each phase",
+            "Approve phase completion before proceeding to next"
+        ]
+    },
+    "criticalRules": {
+        "universal": [
+            "NO hardcoded credentials or API keys",
+            "NO mock data in production code",
+            "NO console.log statements",
+            "NO external dependencies without validation",
+            "NO security vulnerabilities",
+            "ALL data must come from Firestore (after Phase 2)",
+            "ALL errors must be handled",
+            "ALL components must have loading states",
+            "ALL async operations must have try-catch",
+            "ALL changes must be tested"
+        ],
+        "phaseSpecific": "See individual phase prompt files for phase-specific rules"
+    },
+    "validationFramework": {
+        "afterEachTask": [
+            "Run validation tests specified in task",
+            "Verify no errors introduced",
+            "Test affected functionality",
+            "Commit working code"
+        ],
+        "afterEachPhase": [
+            "Run all phase validation tests",
+            "Verify all postConditions met",
+            "Run: npm run dev (application starts)",
+            "Run: npm run type-check (zero errors)",
+            "Run: npm run lint (zero errors)",
+            "Create validation report",
+            "Update phase status in ../index.json"
+        ],
+        "finalValidation": [
+            "All 8 phases completed",
+            "Zero TypeScript errors",
+            "Zero ESLint errors",
+            "Test coverage >80%",
+            "Lighthouse score >90",
+            "Accessibility score >95",
+            "No hardcoded data",
+            "No security vulnerabilities"
+        ]
+    },
+    "successMetrics": {
+        "security": {
+            "current": "3/10 - CRITICAL ISSUES PRESENT",
+            "target": "9/10 - No exposed credentials, proper security rules",
+            "validation": "Security audit passes, no hardcoded credentials"
+        },
+        "codeQuality": {
+            "current": "5/10 - Duplication, no tests, inconsistent",
+            "target": "8/10 - DRY, tested, consistent",
+            "validation": "Zero errors, >80% coverage, ESLint passes"
+        },
+        "maintainability": {
+            "current": "4/10 - Large files, tight coupling",
+            "target": "8/10 - Modular, documented, clear architecture",
+            "validation": "Service layer, shared components, documentation"
+        },
+        "performance": {
+            "current": "6/10 - No optimization",
+            "target": "8/10 - Optimized, cached, lazy loaded",
+            "validation": "Lighthouse >90, bundle size reduced 30%"
+        },
+        "accessibility": {
+            "current": "3/10 - No ARIA, poor contrast",
+            "target": "8/10 - WCAG AA compliant",
+            "validation": "Lighthouse accessibility >95"
+        }
+    },
+    "rollbackStrategy": {
+        "perTask": "If task fails: revert changes, document issue, seek assistance",
+        "perPhase": "Each phase in separate git branch, can revert entire phase if needed",
+        "emergency": "If critical failure: stop all work, revert to last stable state, escalate to human"
+    },
+    "deliverables": {
+        "perPhase": [
+            "All code changes as specified in phase prompt",
+            "Validation report: PHASE_X_VALIDATION_REPORT.md",
+            "Updated phase status in ../index.json",
+            "Git commits with clear messages"
+        ],
+        "finalDeliverables": [
+            "Fully functional TeenWork application",
+            "Zero security vulnerabilities",
+            "Comprehensive test suite",
+            "Complete documentation",
+            "Deployment-ready codebase"
+        ]
+    },
+    "supportResources": {
+        "documentation": [
+            "../INVESTIGATION_REPORT.md - Detailed analysis of all issues",
+            "../index.json - Master repair plan",
+            "../phase-X-*.json - Detailed phase specifications",
+            "Firebase documentation",
+            "React documentation",
+            "TypeScript documentation"
+        ],
+        "tools": [
+            "npm run dev - Start development server",
+            "npm run build - Build for production",
+            "npm run type-check - Check TypeScript errors",
+            "npm run lint - Run ESLint",
+            "npm run test - Run tests",
+            "git - Version control"
+        ]
+    },
+    "notes": [
+        "Phase 1 (Security) is CRITICAL and must be completed immediately",
+        "Phases must be executed in sequential order due to dependencies",
+        "Each phase should be in its own git branch",
+        "Validation is mandatory - do not skip",
+        "Document any deviations or issues encountered",
+        "Estimated total time: ~3 weeks of focused development",
+        "Can be parallelized across multiple developers after Phase 3"
+    ]
+}

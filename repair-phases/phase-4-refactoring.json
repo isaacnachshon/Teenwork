@@ -1,0 +1,75 @@
+{
+    "phase": 4,
+    "name": "Code Deduplication & Refactoring",
+    "priority": "MEDIUM",
+    "estimatedTimeHours": 20,
+    "description": "Eliminate code duplication across login pages, extract shared components and hooks, implement DRY principles.",
+    "objectives": [
+        "Create shared authentication hook",
+        "Extract common form components",
+        "Consolidate validation logic",
+        "Reduce bundle size through deduplication"
+    ],
+    "tasks": [
+        {
+            "id": "4.1",
+            "title": "Create useAuth Custom Hook",
+            "actions": [
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/hooks/useAuth.ts",
+                    "content": "Shared hook for login, signup, Google auth, logout. Used by all login pages."
+                }
+            ]
+        },
+        {
+            "id": "4.2",
+            "title": "Extract Shared Form Components",
+            "actions": [
+                {
+                    "type": "CREATE_COMPONENTS",
+                    "files": [
+                        "teenwork/components/shared/FormInput.tsx",
+                        "teenwork/components/shared/AuthForm.tsx",
+                        "teenwork/components/shared/GoogleSignInButton.tsx"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "4.3",
+            "title": "Consolidate Validation Logic",
+            "actions": [
+                {
+                    "type": "CREATE_FILE",
+                    "target": "teenwork/utils/validation.ts",
+                    "content": "Centralized validation functions: validateEmail(), validatePassword(), validateRequired()"
+                }
+            ]
+        },
+        {
+            "id": "4.4",
+            "title": "Refactor Login Pages to Use Shared Code",
+            "actions": [
+                {
+                    "type": "REFACTOR_FILE",
+                    "files": [
+                        "TeenLoginPage.tsx",
+                        "EmployerLoginPage.tsx",
+                        "LoginPage.tsx"
+                    ],
+                    "changes": "Use shared hooks and components. Reduce from ~250 lines to ~100 lines each."
+                }
+            ]
+        }
+    ],
+    "dependencies": [
+        "phase-3-error-handling"
+    ],
+    "postConditions": [
+        "useAuth hook used by all login pages",
+        "No duplicated validation logic",
+        "Shared UI components extracted",
+        "Code reduction: ~400 lines eliminated"
+    ]
+}
