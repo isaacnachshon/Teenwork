@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import LoginPage from '@/pages/auth/LoginPage';
@@ -8,185 +6,157 @@ import TeenLoginPage from '@/pages/auth/TeenLoginPage';
 import LandingPage from '@/pages/LandingPage';
 import AboutPage from '@/pages/AboutPage';
 import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
+import ParentApprovalPage from '@/pages/auth/ParentApprovalPage';
+import WaitingForParentApproval from '@/pages/auth/WaitingForParentApproval';
 
-import { auth, db, getFirebaseInitError } from '@/firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getFirebaseInitError } from '@/firebase';
+import { AuthService } from '@/services/AuthService';
+import { UserService } from '@/services/UserService';
+import type { User } from 'firebase/auth';
+import type { UserProfile } from '@/types';
 
-type Role = 'landing' | 'about' | 'teen' | 'employer' | 'admin';
+type View = 'landing' | 'about' | 'teen' | 'employer' | 'admin';
 
-type CurrentUser = {
+interface AuthState {
   firebaseUser: User;
-  role: Exclude<Role, 'landing' | 'about'>;
-};
-
-const ensureUserDocument = async (user: User): Promise<Exclude<Role, 'landing' | 'about'>> => {
-  const userDocRef = doc(db, 'users', user.uid);
-  const userDoc = await getDoc(userDocRef);
-
-  if (userDoc.exists()) {
-    const data = userDoc.data();
-    await setDoc(userDocRef, {
-      lastLogin: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-    return (data.role as Exclude<Role, 'landing' | 'about'>) || 'teen';
-  }
-
-  const defaultName = user.displayName || user.email?.split('@')[0] || 'משתמש';
-  await setDoc(userDocRef, {
-    uid: user.uid,
-    displayName: defaultName,
-    name: defaultName,
-    email: user.email || '',
-    photoURL: user.photoURL || '',
-    role: 'teen',
-    phone: '',
-    city: '',
-    birthDate: '',
-    profileCompleted: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    lastLogin: serverTimestamp(),
-    status: 'active',
-  });
-
-  return 'teen';
-};
+  profile: UserProfile;
+}
 
 const App: React.FC = () => {
-  const [view, setView] = useState<Role>('landing');
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [view, setView] = useState<View>('landing');
+  const [authState, setAuthState] = useState<AuthState | null>(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+  const [approvalToken, setApprovalToken] = useState<string | null>(null);
 
+  // ── Step 0: Check for parental approval token in URL ──
   useEffect(() => {
-    // If Firebase failed to initialize, surface the error immediately.
-    const firebaseInitErr = getFirebaseInitError && getFirebaseInitError();
-    if (firebaseInitErr) {
-      console.error('Firebase init error detected in App:', firebaseInitErr);
-      setInitError(firebaseInitErr);
+    const token = new URLSearchParams(window.location.search).get('approve');
+    if (token) setApprovalToken(token);
+  }, []);
+
+  // ── Auth Flow: onAuthStateChanged → ensureUser → loadProfile → route ──
+  useEffect(() => {
+    if (approvalToken) return;
+
+    const firebaseErr = getFirebaseInitError?.();
+    if (firebaseErr) {
+      setInitError(firebaseErr);
       setLoading(false);
       return;
     }
 
-    let unsubscribeDoc: (() => void) | null = null;
+    let unsubProfile: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      // Always cleanup previous document listener when auth state changes
-      if (unsubscribeDoc) {
-        unsubscribeDoc();
-        unsubscribeDoc = null;
+    const unsubAuth = AuthService.onAuthStateChanged((user) => {
+      if (unsubProfile) {
+        unsubProfile();
+        unsubProfile = null;
       }
 
-      if (user) {
-        const handleUserDocument = async () => {
-          try {
-            const role = await ensureUserDocument(user);
-
-            const userDocRef = doc(db, 'users', user.uid);
-            unsubscribeDoc = onSnapshot(userDocRef, (docSnap) => {
-              let resolvedRole: Exclude<Role, 'landing'> | null = null;
-
-              if (docSnap.exists()) {
-                const userData = docSnap.data();
-                resolvedRole = userData.role as Exclude<Role, 'landing'>;
-              }
-
-              if (resolvedRole) {
-                if (resolvedRole === 'teen' && !user.emailVerified) {
-                  const creationTime = new Date(user.metadata.creationTime!).getTime();
-                  const now = new Date().getTime();
-                  const hoursSinceCreation = (now - creationTime) / (1000 * 60 * 60);
-
-                  if (hoursSinceCreation > 24) {
-                    alert('Your registration expired because your email was not verified within 24 hours. Please sign up again.');
-                    signOut(auth);
-                    setLoading(false);
-                    return;
-                  }
-                }
-
-                setCurrentUser({ firebaseUser: user, role: resolvedRole });
-                setView(resolvedRole);
-                setLoading(false);
-              }
-            }, (error) => {
-              console.error('Error listening to user doc:', error);
-              setLoading(false);
-            });
-          } catch (error) {
-            console.error('Failed to ensure user document:', error);
-            setLoading(false);
-          }
-        };
-
-        void handleUserDocument();
-
-      } else {
-        setCurrentUser(null);
+      if (!user) {
+        // ── Logged out → Landing ──
+        setAuthState(null);
         setView('landing');
         setLoading(false);
+        return;
       }
+
+      // ── Logged in → ensure user doc → listen to profile ──
+      const init = async () => {
+        try {
+          const defaultName = user.displayName || user.email?.split('@')[0] || 'משתמש';
+          await UserService.ensureDocument(user.uid, {
+            displayName: defaultName,
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+            role: 'teen',
+          } as Partial<UserProfile>);
+
+          unsubProfile = UserService.onSnapshot(user.uid, (profile) => {
+            if (!profile?.role) return;
+
+            // ── Teen email verification check (24h expiry) ──
+            if (profile.role === 'teen' && !user.emailVerified) {
+              const created = new Date(user.metadata.creationTime!).getTime();
+              const hoursSinceCreation = (Date.now() - created) / (1000 * 60 * 60);
+              if (hoursSinceCreation > 24) {
+                alert('ההרשמה שלך פגה כי האימייל לא אומת תוך 24 שעות. נא להירשם מחדש.');
+                AuthService.logout();
+                setLoading(false);
+                return;
+              }
+            }
+
+            setAuthState({ firebaseUser: user, profile });
+            setView(profile.role);
+            setLoading(false);
+          });
+        } catch (err) {
+          console.error('Auth flow error:', err);
+          setLoading(false);
+        }
+      };
+
+      void init();
     });
 
     return () => {
-      unsubscribeAuth();
-      if (unsubscribeDoc) {
-        unsubscribeDoc();
-      }
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
     };
-  }, []);
+  }, [approvalToken]);
 
-  const handleRoleChange = (newView: Role) => {
-    setView(newView);
-  };
-
-  const handleLogout = () => {
-    signOut(auth);
-  };
+  // ── Handlers ──
+  const handleLogout = () => AuthService.logout();
 
   const getUserName = (): string => {
-    if (!currentUser) return '';
-    const data = currentUser as any;
-    return data.displayName || currentUser.firebaseUser.displayName || currentUser.firebaseUser.email?.split('@')[0] || 'משתמש';
+    if (!authState) return '';
+    const p = authState.profile as any;
+    return p.name || p.companyName || p.displayName || authState.firebaseUser.displayName || 'משתמש';
   };
 
+  // ── Protected Route Logic ──
   const dashboard = useMemo(() => {
     switch (view) {
       case 'about':
         return <AboutPage onBack={() => setView('landing')} />;
 
       case 'landing':
-        return <LandingPage onRoleSelect={handleRoleChange} />;
+        return <LandingPage onRoleSelect={(v) => setView(v as View)} />;
 
       case 'teen':
-        if (currentUser?.role === 'teen') {
-          if (currentUser.firebaseUser.emailVerified) {
-            return <DashboardLayout role="teen" userName={getUserName()} onLogout={handleLogout} />;
-          } else {
-            return <EmailVerificationPage user={currentUser.firebaseUser} />;
+        if (authState?.profile.role === 'teen') {
+          if (!authState.firebaseUser.emailVerified) {
+            return <EmailVerificationPage user={authState.firebaseUser} />;
           }
+          const consent = (authState.profile as any).parentalConsentStatus;
+          if (consent !== 'approved') {
+            return <WaitingForParentApproval user={authState.firebaseUser} />;
+          }
+          return <DashboardLayout role="teen" userName={getUserName()} onLogout={handleLogout} />;
         }
         return <TeenLoginPage onBack={() => setView('landing')} />;
 
       case 'employer':
-        return currentUser?.role === 'employer'
+        return authState?.profile.role === 'employer'
           ? <DashboardLayout role="employer" userName={getUserName()} onLogout={handleLogout} />
           : <EmployerLoginPage onBack={() => setView('landing')} />;
 
       case 'admin':
-        return currentUser?.role === 'admin'
+        return authState?.profile.role === 'admin'
           ? <DashboardLayout role="admin" userName={getUserName()} onLogout={handleLogout} />
           : <LoginPage onBack={() => setView('landing')} />;
 
       default:
-        return <LandingPage onRoleSelect={handleRoleChange} />;
+        return <LandingPage onRoleSelect={(v) => setView(v as View)} />;
     }
-  }, [view, currentUser]);
+  }, [view, authState]);
 
-  const isDashboard = view === 'teen' || view === 'employer' || view === 'admin';
-  const showingDashboard = isDashboard && currentUser?.role === view;
+  // ── Render ──
+  if (approvalToken) {
+    return <ParentApprovalPage token={approvalToken} />;
+  }
 
   if (loading) {
     return (
@@ -203,13 +173,13 @@ const App: React.FC = () => {
           <h2 className="text-xl font-bold mb-4">שגיאת אתחול</h2>
           <p className="mb-4 text-sm text-gray-700">האפליקציה נתקלה בבעיה בזמן התחלת Firebase:</p>
           <pre className="bg-gray-100 p-3 rounded text-sm text-red-700 overflow-auto">{initError}</pre>
-          <p className="mt-4 text-sm text-gray-600">פתח את קונסולת הדפדפן (DevTools) כדי לראות פרטים נוספים.</p>
         </div>
       </div>
     );
   }
 
-  if (showingDashboard) {
+  const isProtectedRoute = view === 'teen' || view === 'employer' || view === 'admin';
+  if (isProtectedRoute && authState?.profile.role === view) {
     return dashboard;
   }
 
