@@ -41,13 +41,13 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
         setResentMessage('');
         try {
             await sendEmailVerification(user);
-            setResentMessage('Verification email sent!');
-            setCountdown(60); // 60 seconds cooldown
+            setResentMessage('אימייל אימות נשלח!');
+            setCountdown(60);
         } catch (err: any) {
              if (err.code === 'auth/too-many-requests') {
-                setError('Too many requests. Please try again later.');
+                setError('יותר מדי בקשות. נסה שוב מאוחר יותר.');
             } else {
-                setError('Failed to send email. Please try again later.');
+                setError('שליחת האימייל נכשלה. נסה שוב מאוחר יותר.');
             }
         } finally {
             setIsSending(false);
@@ -65,12 +65,12 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
                     <div className="p-3 bg-purple-100 rounded-full mb-4">
                         <MailCheckIcon className="w-10 h-10 text-purple-600" />
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Verify Your Email</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">אימות כתובת האימייל</h1>
                     <p className="mt-2 text-gray-600">
-                        A verification link has been sent to <strong>{user.email}</strong>.
+                        קישור אימות נשלח לכתובת <strong>{user.email}</strong>.
                     </p>
                     <p className="mt-2 text-gray-500 text-sm">
-                        Please check your inbox (and spam folder) and click the link to activate your account. This page will update automatically once you're verified.
+                        אנא בדוק את תיבת הדואר שלך (כולל ספאם) ולחץ על הקישור להפעלת החשבון. הדף יתעדכן אוטומטית לאחר האימות.
                     </p>
                 </div>
 
@@ -83,14 +83,14 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
                         disabled={isSending || countdown > 0}
                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed transition-colors"
                     >
-                        {isSending ? 'Sending...' : (countdown > 0 ? `Resend in ${countdown}s` : 'Resend Verification Email')}
+                        {isSending ? 'שולח...' : (countdown > 0 ? `שלח שוב בעוד ${countdown} שניות` : 'שלח אימייל אימות מחדש')}
                     </button>
                     <button
                         onClick={handleLogout}
                         className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                     >
                         <LogOutIcon className="w-5 h-5" />
-                        Log Out
+                        התנתקות
                     </button>
                 </div>
             </div>

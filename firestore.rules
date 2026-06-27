@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // פונקציה שבודקת אם המשתמש הנוכחי הוא מנהל
+    function isAdmin() {
+      // !!! הדבק כאן את ה-UID שהעתקת מה-Authentication !!!
+      return request.auth.uid == 'mCQUl4hMRoeDnIeuvOEJf791ZdA3';
+    }
+
+    // חוקים עבור קולקציית המשתמשים
+    match /users/{userId} {
+      // למנהל מותר לקרוא ולכתוב את כל המידע של כל המשתמשים.
+      // משתמש רגיל יכול לקרוא ולכתוב רק את המידע של עצמו.
+      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+    }
+  }
+}

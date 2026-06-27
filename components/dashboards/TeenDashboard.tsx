@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Job, UserProfile } from '../../types';
-import { MapPinIcon, DollarSignIcon, SearchIcon, BellIcon, MenuIcon, UserIcon, BriefcaseIcon, UsersIcon, HomeIcon, ScaleIcon } from '../icons';
+import { MapPinIcon, DollarSignIcon, SearchIcon, BellIcon, MenuIcon, XIcon, UserIcon, BriefcaseIcon, UsersIcon, HomeIcon, ScaleIcon } from '../icons';
 import RightsInfoModal from '../RightsInfoModal';
 import ProfilePage from '../ProfilePage';
 import JobsPage from '../JobsPage';
@@ -8,6 +8,7 @@ import EditProfilePage from '../EditProfilePage';
 import JobDetailPage from '../JobDetailPage';
 import { auth, db } from '../../firebase';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import JobMap from '../JobMap';
 
 // Local jobs array removed in favor of Firestore fetching
 
@@ -82,7 +83,7 @@ const JobCard: React.FC<{ job: Job, onViewDetails: (job: Job) => void, distance?
       <p className="text-xs text-purple-600 font-semibold">📍 מרחק: {distance.toFixed(1)} ק"מ</p>
     )}
     <p className="text-sm text-gray-500 flex-grow">{job.description}</p>
-    <button onClick={() => onViewDetails(job)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 mt-2">הגש מועמדות</button>
+    <button onClick={() => onViewDetails(job)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 mt-2">צפה בפרטים</button>
   </div>
 );
 
@@ -90,10 +91,26 @@ type View = 'home' | 'jobs' | 'communities' | 'profile' | 'editProfile' | 'jobDe
 
 interface TeenDashboardProps {
   onLogout: () => void;
+  onHeaderVisibilityChange?: (hidden: boolean) => void;
 }
 
-const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
+const getTimeGreeting = (name: string): string => {
+  const hour = new Date().getHours();
+  const firstName = name.split(' ')[0];
+  if (hour >= 5 && hour < 12) return `בוקר טוב, ${firstName}`;
+  if (hour >= 12 && hour < 17) return `צהריים טובים, ${firstName}`;
+  if (hour >= 17 && hour < 21) return `ערב טוב, ${firstName}`;
+  return `לילה טוב, ${firstName}`;
+};
+
+const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibilityChange }) => {
   const [activeView, setActiveView] = useState<View>('home');
+
+  const navigateTo = (view: View) => {
+    const hideHeader = view === 'profile' || view === 'editProfile';
+    onHeaderVisibilityChange?.(hideHeader);
+    setActiveView(view);
+  };
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>(initialUserProfile);
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
@@ -103,6 +120,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [showRightsModal, setShowRightsModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fetch jobs from Firestore
   useEffect(() => {
@@ -170,8 +188,6 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
             workHistory: userData.workHistory || [],
             reviews: userData.reviews || [],
           });
-        } else {
-          console.warn('User document not found in Firestore');
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -235,8 +251,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
       }, { merge: true });
 
       setUserProfile(updatedProfile);
-      setActiveView('profile');
-      console.log('Teen profile saved successfully');
+      navigateTo('profile');
     } catch (error) {
       console.error('Error saving teen profile:', error);
       alert('שגיאה בשמירת הפרופיל. נסה שוב.');
@@ -255,7 +270,8 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setActiveView(viewName);
+            navigateTo(viewName);
+            setIsMobileMenuOpen(false);
           }}
           className={`flex items-center gap-3 text-lg font-semibold p-3 rounded-lg transition-colors ${isActive ? 'text-purple-700 bg-purple-100' : 'text-gray-600 hover:text-purple-700 hover:bg-purple-50'}`}
         >
@@ -268,6 +284,11 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
 
   const HomeContent: React.FC = () => (
     <>
+      <section className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">{getTimeGreeting(userProfile.name)}</h1>
+        <p className="text-gray-500 mt-1">מה עובד היום?</p>
+      </section>
+
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">סטוריז מהקהילה</h2>
         <div className="flex gap-4 overflow-x-auto pb-4">
@@ -298,26 +319,27 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
 
       <section className="mt-10">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">מפת עבודות</h2>
-        <div className="w-full h-80 bg-gray-200 rounded-xl shadow-md flex items-center justify-center">
-          <div className="text-center">
-            <MapPinIcon className="w-16 h-16 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">מפת עבודות תטען כאן</p>
-          </div>
-        </div>
+        <JobMap
+          jobs={jobs}
+          userLocation={userProfile.coordinates}
+          onJobClick={handleViewJobDetails}
+          height="400px"
+        />
       </section>
+
     </>
   );
 
   const renderContent = () => {
     switch (activeView) {
       case 'profile':
-        return <ProfilePage userProfile={userProfile} onEdit={() => setActiveView('editProfile')} />;
+        return <ProfilePage userProfile={userProfile} onEdit={() => navigateTo('editProfile')} />;
       case 'editProfile':
-        return <EditProfilePage userProfile={userProfile} onSave={handleProfileSave} onCancel={() => setActiveView('profile')} />;
+        return <EditProfilePage userProfile={userProfile} onSave={handleProfileSave} onCancel={() => navigateTo('profile')} />;
       case 'jobs':
         return <JobsPage onViewJobDetails={handleViewJobDetails} userLocation={userProfile.coordinates} />;
       case 'jobDetail':
-        return selectedJob ? <JobDetailPage job={selectedJob} onBack={() => setActiveView('jobs')} userLocation={userLocation} /> : <div className="text-center p-10">טוען פרטי משרה...</div>;
+        return selectedJob ? <JobDetailPage job={selectedJob} onBack={() => navigateTo('jobs')} userLocation={userLocation} /> : <div className="text-center p-10">טוען פרטי משרה...</div>;
       case 'communities':
         return (
           <div className="flex flex-col items-center justify-center h-full text-center p-10 animate-in fade-in-0 duration-500">
@@ -345,13 +367,26 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
 
   return (
     <div className="flex min-h-screen">
-      <nav className="w-64 bg-white p-6 shadow-lg flex-shrink-0 hidden md:flex flex-col">
-        <button
-          onClick={() => setActiveView('home')}
-          className="text-2xl font-bold text-purple-600 mb-8 text-right focus:outline-none hover:opacity-80 transition-opacity"
-        >
-          TEENWORK
-        </button>
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
+
+      <nav id="mobile-nav" aria-label="ניווט ראשי" className={`fixed inset-y-0 right-0 z-50 w-64 bg-white p-6 shadow-lg flex flex-col transform transition-transform duration-300 ease-in-out md:static md:flex-shrink-0 md:translate-x-0 md:flex ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => { navigateTo('home'); setIsMobileMenuOpen(false); }}
+            aria-label="TEENWORK - חזרה לדף הבית"
+            className="text-2xl font-bold text-purple-600 text-right focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded hover:opacity-80 transition-opacity"
+          >
+            TEENWORK
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(false)} aria-label="סגור תפריט ניווט" className="md:hidden p-1 text-gray-500 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded">
+            <XIcon className="w-6 h-6" aria-hidden="true" />
+          </button>
+        </div>
         <ul className="space-y-4">
           <NavLink viewName="home" icon={<HomeIcon className="w-6 h-6" />}>דף הבית</NavLink>
           <NavLink viewName="jobs" icon={<BriefcaseIcon className="w-6 h-6" />}>חיפוש עבודות</NavLink>
@@ -359,7 +394,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
           <NavLink viewName="profile" icon={<UserIcon className="w-6 h-6" />}>פרופיל</NavLink>
           <li>
             <button
-              onClick={() => setShowRightsModal(true)}
+              onClick={() => { setShowRightsModal(true); setIsMobileMenuOpen(false); }}
               className="flex w-full items-center gap-3 text-lg font-semibold p-3 rounded-lg transition-colors text-gray-600 hover:text-purple-700 hover:bg-purple-50"
             >
               <ScaleIcon className="w-6 h-6" />
@@ -375,17 +410,24 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout }) => {
       <div className="flex-1 bg-gray-50 p-6 md:p-10">
         <header className="flex justify-between items-center mb-8">
           <div className="relative w-full max-w-lg">
-            <input type="text" placeholder="חיפוש מהיר של עבודה..." className="w-full ps-12 pe-4 py-3 rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow" />
-            <SearchIcon className="absolute top-1/2 right-4 -translate-y-1/2 w-6 h-6 text-gray-400" />
+            <label htmlFor="quick-search" className="sr-only">חיפוש מהיר של עבודה</label>
+            <input
+              id="quick-search"
+              type="search"
+              placeholder="חיפוש מהיר של עבודה..."
+              className="w-full ps-12 pe-4 py-3 rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow cursor-pointer"
+              readOnly
+              onClick={() => setActiveView('jobs')}
+            />
+            <SearchIcon className="absolute top-1/2 right-4 -translate-y-1/2 w-6 h-6 text-gray-400" aria-hidden="true" />
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-3 bg-white rounded-full shadow-sm relative hover:bg-gray-100 transition-colors">
-              <BellIcon className="w-6 h-6 text-gray-600" />
-              <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 border-2 border-white"></span>
+            <button aria-label="התראות (בקרוב)" className="p-3 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500" title="התראות (בקרוב)">
+              <BellIcon className="w-6 h-6 text-gray-600" aria-hidden="true" />
             </button>
-            <img src={userProfile.profileImageUrl} alt="פרופיל" className="w-12 h-12 rounded-full border-2 border-purple-500 object-cover" />
-            <button className="md:hidden p-2">
-              <MenuIcon className="w-6 h-6 text-gray-600" />
+            <img src={userProfile.profileImageUrl} alt={`תמונת פרופיל של ${userProfile.name}`} className="w-12 h-12 rounded-full border-2 border-purple-500 object-cover" />
+            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="פתח תפריט ניווט" aria-expanded={isMobileMenuOpen} aria-controls="mobile-nav" className="md:hidden p-2 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded">
+              <MenuIcon className="w-6 h-6 text-gray-600" aria-hidden="true" />
             </button>
           </div>
         </header>

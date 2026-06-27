@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Job } from '../types';
 import { MapPinIcon, DollarSignIcon, ClockIcon, CalendarIcon, BriefcaseIcon, ChevronLeftIcon, RouteIcon } from './icons';
-import { GoogleGenAI } from '@google/genai';
-
+import { auth, db } from '../firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 interface JobDetailPageProps {
     job: Job;
@@ -10,49 +10,55 @@ interface JobDetailPageProps {
     userLocation: { lat: number; lng: number; } | null;
 }
 
+// Haversine formula - straight-line distance in km between two coordinates.
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation }) => {
     const [distanceInfo, setDistanceInfo] = useState<{ text: string; link?: string } | null>(null);
-    const [isLoadingDistance, setIsLoadingDistance] = useState(false);
+    const [applyStatus, setApplyStatus] = useState<'idle' | 'submitting' | 'applied' | 'error'>('idle');
+
+    const handleApply = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            setApplyStatus('error');
+            return;
+        }
+
+        setApplyStatus('submitting');
+        try {
+            await addDoc(collection(db, 'applications'), {
+                jobId: job.id,
+                jobTitle: job.title,
+                employerId: (job as any).employerId || null,
+                applicantId: user.uid,
+                status: 'new',
+                createdAt: serverTimestamp(),
+            });
+            setApplyStatus('applied');
+        } catch (error) {
+            console.error('Error submitting application:', error);
+            setApplyStatus('error');
+        }
+    };
 
     useEffect(() => {
-        const fetchDistance = async () => {
-            if (userLocation && job.coordinates) {
-                setIsLoadingDistance(true);
-                setDistanceInfo(null);
-                try {
-                    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                    const prompt = `מה המרחק וזמן הנסיעה המשוער ברכב בין ${userLocation.lat},${userLocation.lng} לבין ${job.coordinates.lat},${job.coordinates.lng}? הצג רק את הטקסט, לדוגמה: "כ-15 ק"מ, 25 דקות נסיעה".`;
-                    
-                    const response = await ai.models.generateContent({
-                        model: "gemini-2.5-flash",
-                        contents: prompt,
-                        config: {
-                            tools: [{googleMaps: {}}],
-                        },
-                    });
-
-                    const text = response.text;
-                    let mapsLink: string | undefined;
-
-                    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-                    if (groundingChunks && groundingChunks.length > 0) {
-                        const mapsChunk = groundingChunks.find(chunk => 'maps' in chunk);
-                        if (mapsChunk && 'maps' in mapsChunk) {
-                             mapsLink = (mapsChunk.maps as any).uri;
-                        }
-                    }
-
-                    setDistanceInfo({ text, link: mapsLink });
-                } catch (error) {
-                    console.error("Error fetching distance from Gemini:", error);
-                    setDistanceInfo({ text: "לא ניתן היה לחשב מרחק." });
-                } finally {
-                    setIsLoadingDistance(false);
-                }
-            }
-        };
-
-        fetchDistance();
+        if (userLocation && job.coordinates) {
+            const distanceKm = calculateDistanceKm(userLocation.lat, userLocation.lng, job.coordinates.lat, job.coordinates.lng);
+            const mapsLink = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${job.coordinates.lat},${job.coordinates.lng}`;
+            setDistanceInfo({ text: `כ-${distanceKm.toFixed(1)} ק"מ ממיקומך`, link: mapsLink });
+        } else {
+            setDistanceInfo(null);
+        }
     }, [userLocation, job.coordinates]);
 
     return (
@@ -111,9 +117,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                                 <RouteIcon className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
                                 <div>
                                     <strong className="font-semibold text-gray-700">מרחק ממך:</strong>
-                                    {isLoadingDistance ? (
-                                        <p className="text-sm text-gray-500">מחשב מרחק...</p>
-                                    ) : distanceInfo ? (
+                                    {distanceInfo ? (
                                         <>
                                             <p className="text-sm">{distanceInfo.text}</p>
                                             {distanceInfo.link && (
@@ -132,9 +136,16 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                      <div className="bg-purple-600 text-white p-6 rounded-xl shadow-lg text-center sticky top-28">
                          <h2 className="text-2xl font-bold">מוכנים להתחיל?</h2>
                          <p className="mt-2 mb-4 opacity-90">הגישו מועמדות עכשיו והתחילו את הקריירה שלכם!</p>
-                         <button className="w-full bg-white text-purple-600 font-bold py-3 px-6 rounded-lg hover:bg-purple-50 transition-colors duration-300 shadow-md">
-                            הגש מועמדות עכשיו
+                         <button
+                            onClick={handleApply}
+                            disabled={applyStatus === 'submitting' || applyStatus === 'applied'}
+                            className="w-full bg-white text-purple-600 font-bold py-3 px-6 rounded-lg hover:bg-purple-50 transition-colors duration-300 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                         >
+                            {applyStatus === 'submitting' ? 'שולח מועמדות...' : applyStatus === 'applied' ? 'המועמדות נשלחה ✓' : 'הגש מועמדות עכשיו'}
                          </button>
+                         {applyStatus === 'error' && (
+                            <p className="mt-2 text-sm text-red-100">שגיאה בשליחת המועמדות. נסה שוב.</p>
+                         )}
                      </div>
                 </div>
             </main>

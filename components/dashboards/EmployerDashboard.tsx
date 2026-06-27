@@ -2,15 +2,22 @@ import React, { useState } from 'react';
 import type { Applicant, Job } from '../../types';
 import { BriefcaseIcon, UserIcon, PlusCircleIcon, XIcon, DollarSignIcon, MapPinIcon, LogOutIcon, ClockIcon, CalendarIcon, UsersIcon, HomeIcon, SettingsIcon } from '../icons';
 import EmployerProfilePage from '../EmployerProfilePage';
+import ApplicantsListView from '../ApplicantsListView';
+import ApplicantProfileView from '../ApplicantProfileView';
 import { db, auth } from '../../firebase';
-import { collection, addDoc, query, where, getDocs, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { geocodeLocation } from '../../utils/geocode';
+import JobMap from '../JobMap';
 
-const applicants: Applicant[] = [
-  { id: '1', name: 'מאיה לוי', age: 17, jobTitle: 'מלצרות באירוע', profileImageUrl: 'https://picsum.photos/id/1027/100/100', status: 'new' },
-  { id: '2', name: 'איתי שדה', age: 16, jobTitle: 'עזרה בשיעורי בית', profileImageUrl: 'https://picsum.photos/id/1041/100/100', status: 'viewed' },
-  { id: '3', name: 'נועה ברק', age: 18, jobTitle: 'בייביסיטר', profileImageUrl: 'https://picsum.photos/id/1043/100/100', status: 'contacted' },
-  { id: '4', name: 'גיא כרמל', age: 17, jobTitle: 'מלצרות באירוע', profileImageUrl: 'https://picsum.photos/id/1051/100/100', status: 'new' },
-];
+interface RecentApplicant {
+  applicationId: string;
+  applicantId: string;
+  name: string;
+  age?: number;
+  jobTitle: string;
+  profileImageUrl?: string;
+  status: Applicant['status'];
+}
 
 interface EmployerDashboardProps {
   onLogout: () => void;
@@ -42,9 +49,26 @@ const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode }
   </div>
 );
 
-const PostJobModal: React.FC<{ onClose: () => void, onPostJob: (job: Job) => void, employerProfile: any }> = ({ onClose, onPostJob, employerProfile }) => {
+const PostJobModal: React.FC<{
+  onClose: () => void,
+  onPostJob: (job: Job) => void,
+  onUpdateJob: (jobId: string, job: Partial<Job>) => void,
+  employerProfile: any,
+  editingJob?: Job | null
+}> = ({ onClose, onPostJob, onUpdateJob, employerProfile, editingJob }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<FormData>(() => editingJob ? {
+    title: editingJob.title,
+    description: editingJob.description,
+    jobTypes: [editingJob.type],
+    location: editingJob.location,
+    days: editingJob.days || [],
+    startTime: editingJob.startTime || '09:00',
+    endTime: editingJob.endTime || '17:00',
+    salary: editingJob.salary,
+    skills: editingJob.skills || [],
+    experience: editingJob.experience || 'ללא ניסיון'
+  } : {
     title: '',
     description: '',
     jobTypes: [],
@@ -91,6 +115,25 @@ const PostJobModal: React.FC<{ onClose: () => void, onPostJob: (job: Job) => voi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (editingJob) {
+      const updatedJobData = {
+        title: formData.title,
+        location: formData.location,
+        salary: Number(formData.salary),
+        type: formData.jobTypes[0] || 'מלצרות',
+        description: formData.description,
+        days: formData.days,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        skills: formData.skills,
+        experience: formData.experience,
+      };
+
+      onUpdateJob(editingJob.id, updatedJobData as Partial<Job>);
+      onClose();
+      return;
+    }
+
     const newJobData = {
       title: formData.title,
       company: employerProfile?.companyName || "My Awesome Company", // Ideally fetch from profile
@@ -120,7 +163,7 @@ const PostJobModal: React.FC<{ onClose: () => void, onPostJob: (job: Job) => voi
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl transform transition-all animate-in fade-in-0 zoom-in-95 duration-300">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold text-gray-800">פרסום משרה חדשה</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <XIcon className="w-6 h-6" />
           </button>
@@ -235,7 +278,7 @@ const PostJobModal: React.FC<{ onClose: () => void, onPostJob: (job: Job) => voi
             {currentStep < 4 ? (
               <button type="button" onClick={nextStep} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">הבא</button>
             ) : (
-              <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">פרסם משרה</button>
+              <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">{editingJob ? 'שמור שינויים' : 'פרסם משרה'}</button>
             )}
           </div>
         </form>
@@ -244,7 +287,7 @@ const PostJobModal: React.FC<{ onClose: () => void, onPostJob: (job: Job) => voi
   );
 };
 
-const PostedJobCard: React.FC<{ job: Job }> = ({ job }) => (
+const PostedJobCard: React.FC<{ job: Job; onViewApplicants: (job: Job) => void; onEdit: (job: Job) => void; onDelete: (jobId: string, jobTitle: string) => void }> = ({ job, onViewApplicants, onEdit, onDelete }) => (
   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div className="flex-grow">
       <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
@@ -260,14 +303,15 @@ const PostedJobCard: React.FC<{ job: Job }> = ({ job }) => (
         <span>{job.applicantsCount} מועמדים</span>
       </div>
       <div className="flex items-center gap-2">
-        <button className="text-sm text-blue-600 font-semibold hover:underline">צפה במועמדים</button>
-        <button className="text-sm text-gray-500 font-semibold hover:underline">ערוך</button>
+        <button onClick={() => onViewApplicants(job)} className="text-sm text-blue-600 font-semibold hover:underline">צפה במועמדים</button>
+        <button onClick={() => onEdit(job)} className="text-sm text-gray-500 font-semibold hover:underline">ערוך</button>
+        <button onClick={() => onDelete(job.id, job.title)} className="text-sm text-red-500 font-semibold hover:underline">מחק</button>
       </div>
     </div>
   </div>
 );
 
-type View = 'dashboard' | 'profile';
+type View = 'dashboard' | 'profile' | 'applicants' | 'applicantProfile';
 
 const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -275,6 +319,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [employerProfile, setEmployerProfile] = useState<any>(null);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [selectedJobForApplicants, setSelectedJobForApplicants] = useState<Job | null>(null);
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
+  const [recentApplicants, setRecentApplicants] = useState<RecentApplicant[]>([]);
 
   // Fetch jobs from Firestore - AND Profile
   const fetchData = async () => {
@@ -305,6 +353,48 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
       });
 
       setJobs(fetchedJobs);
+
+      // Fetch recent applications across all of this employer's jobs
+      const applicationsQuery = query(collection(db, 'applications'), where('employerId', '==', user.uid));
+      const applicationsSnapshot = await getDocs(applicationsQuery);
+      const applicationDocs = applicationsSnapshot.docs
+        .sort((a, b) => {
+          const dateA = (a.data().createdAt as Timestamp)?.seconds || 0;
+          const dateB = (b.data().createdAt as Timestamp)?.seconds || 0;
+          return dateB - dateA;
+        })
+        .slice(0, 5);
+
+      const fetchedApplicants = await Promise.all(applicationDocs.map(async (appDoc) => {
+        const data = appDoc.data();
+        let name = 'מועמד/ת';
+        let age: number | undefined;
+        let profileImageUrl: string | undefined;
+
+        try {
+          const applicantDoc = await getDoc(doc(db, 'users', data.applicantId));
+          if (applicantDoc.exists()) {
+            const applicantData = applicantDoc.data();
+            name = applicantData.name || name;
+            age = applicantData.age;
+            profileImageUrl = applicantData.profileImageUrl;
+          }
+        } catch (error) {
+          console.error('Error fetching applicant profile:', error);
+        }
+
+        return {
+          applicationId: appDoc.id,
+          applicantId: data.applicantId,
+          name,
+          age,
+          jobTitle: data.jobTitle || '',
+          profileImageUrl,
+          status: (data.status || 'new') as Applicant['status'],
+        };
+      }));
+
+      setRecentApplicants(fetchedApplicants);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -318,13 +408,60 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
 
   const handlePostJob = async (newJobData: any) => {
     try {
+      if (newJobData.location && !newJobData.coordinates) {
+        const coords = await geocodeLocation(newJobData.location);
+        if (coords) {
+          newJobData.coordinates = coords;
+        }
+      }
       await addDoc(collection(db, 'jobs'), newJobData);
-      // Refresh the list
       fetchData();
     } catch (error) {
       console.error("Error adding job:", error);
       alert("שגיאה בפרסום המשרה");
     }
+  };
+
+  const handleUpdateJob = async (jobId: string, updatedData: Partial<Job>) => {
+    try {
+      if (updatedData.location) {
+        const coords = await geocodeLocation(updatedData.location);
+        if (coords) {
+          (updatedData as any).coordinates = coords;
+        }
+      }
+      await updateDoc(doc(db, 'jobs', jobId), updatedData as any);
+      fetchData();
+    } catch (error) {
+      console.error("Error updating job:", error);
+      alert("שגיאה בעדכון המשרה");
+    }
+  };
+
+  const handleViewApplicants = (job: Job) => {
+    setSelectedJobForApplicants(job);
+    setActiveView('applicants');
+  };
+
+  const handleEditJob = (job: Job) => {
+    setEditingJob(job);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteJob = async (jobId: string, jobTitle: string) => {
+    if (!window.confirm(`האם אתה בטוח שברצונך למחוק את המשרה "${jobTitle}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'jobs', jobId));
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      alert('שגיאה במחיקת המשרה.');
+    }
+  };
+
+  const handleViewApplicantProfile = (applicantId: string) => {
+    setSelectedApplicantId(applicantId);
+    setActiveView('applicantProfile');
   };
 
   const getStatusChip = (status: Applicant['status']) => {
@@ -379,6 +516,16 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
         <StatCard title="תשלומים החודש" value="3,200 ₪" icon={<DollarSignIcon className="w-6 h-6 text-blue-600" />} />
       </section>
 
+      {jobs.length > 0 && (
+        <section className="bg-white p-6 rounded-xl shadow-md mb-10">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">מפת המשרות שלי</h2>
+          <JobMap
+            jobs={jobs}
+            height="300px"
+          />
+        </section>
+      )}
+
       <section className="bg-white p-6 rounded-xl shadow-md mb-10">
         <h2 className="text-xl font-bold text-gray-800 mb-4">המשרות שפרסמתי</h2>
         {jobs.length === 0 ? (
@@ -390,7 +537,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
         ) : (
           <div className="space-y-4">
             {jobs.map(job => (
-              <PostedJobCard key={job.id} job={job} />
+              <PostedJobCard key={job.id} job={job} onViewApplicants={handleViewApplicants} onEdit={handleEditJob} onDelete={handleDeleteJob} />
             ))}
           </div>
         )}
@@ -398,38 +545,46 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
 
       <section className="bg-white p-6 rounded-xl shadow-md">
         <h2 className="text-xl font-bold text-gray-800 mb-4">מועמדים אחרונים</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-right">
-            <thead className="border-b-2 border-gray-100">
-              <tr>
-                <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">שם</th>
-                <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">משרה</th>
-                <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">סטטוס</th>
-                <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">פעולות</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applicants.map(applicant => (
-                <tr key={applicant.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <img src={applicant.profileImageUrl} alt={applicant.name} className="w-10 h-10 rounded-full" />
-                      <div>
-                        <p className="font-bold text-gray-800">{applicant.name}</p>
-                        <p className="text-sm text-gray-500">גיל {applicant.age}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 whitespace-nowrap text-gray-700">{applicant.jobTitle}</td>
-                  <td className="p-4 whitespace-nowrap">{getStatusChip(applicant.status)}</td>
-                  <td className="p-4 whitespace-nowrap">
-                    <button className="text-blue-600 font-semibold hover:underline">צפה בפרופיל</button>
-                  </td>
+        {recentApplicants.length === 0 ? (
+          <p className="text-center text-gray-500 py-6">עדיין לא התקבלו מועמדויות.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead className="border-b-2 border-gray-100">
+                <tr>
+                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">שם</th>
+                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">משרה</th>
+                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">סטטוס</th>
+                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">פעולות</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {recentApplicants.map(applicant => (
+                  <tr key={applicant.applicationId} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="p-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={applicant.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicant.name)}&background=DBEAFE&color=2563EB&bold=true`}
+                          alt={applicant.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="font-bold text-gray-800">{applicant.name}</p>
+                          {applicant.age !== undefined && <p className="text-sm text-gray-500">גיל {applicant.age}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap text-gray-700">{applicant.jobTitle}</td>
+                    <td className="p-4 whitespace-nowrap">{getStatusChip(applicant.status)}</td>
+                    <td className="p-4 whitespace-nowrap">
+                      <button onClick={() => handleViewApplicantProfile(applicant.applicantId)} className="text-blue-600 font-semibold hover:underline">צפה בפרופיל</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </>
   );
@@ -438,6 +593,21 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
     switch (activeView) {
       case 'profile':
         return <EmployerProfilePage onSave={() => setActiveView('dashboard')} />;
+      case 'applicants':
+        return selectedJobForApplicants ? (
+          <ApplicantsListView
+            job={selectedJobForApplicants}
+            onBack={() => setActiveView('dashboard')}
+            onViewProfile={handleViewApplicantProfile}
+          />
+        ) : <div className="text-center p-10">לא נבחרה משרה.</div>;
+      case 'applicantProfile':
+        return selectedApplicantId ? (
+          <ApplicantProfileView
+            applicantId={selectedApplicantId}
+            onBack={() => setActiveView(selectedJobForApplicants ? 'applicants' : 'dashboard')}
+          />
+        ) : <div className="text-center p-10">לא נבחר מועמד.</div>;
       case 'dashboard':
       default:
         return <div className="animate-in fade-in-0 duration-500"><DashboardContent /></div>;
@@ -446,7 +616,15 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {isModalOpen && <PostJobModal onClose={() => setIsModalOpen(false)} onPostJob={handlePostJob} employerProfile={employerProfile} />}
+      {isModalOpen && (
+        <PostJobModal
+          onClose={() => { setIsModalOpen(false); setEditingJob(null); }}
+          onPostJob={handlePostJob}
+          onUpdateJob={handleUpdateJob}
+          employerProfile={employerProfile}
+          editingJob={editingJob}
+        />
+      )}
       <nav className="w-64 bg-white p-6 shadow-lg flex-shrink-0 hidden md:flex flex-col">
         <div className="flex items-center gap-3 mb-8">
           <img src={employerProfile?.profileImageUrl || employerProfile?.companyLogoUrl || "https://picsum.photos/id/1040/100/100"} alt="לוגו חברה" className="w-12 h-12 rounded-full border-2 border-blue-500 object-cover" />

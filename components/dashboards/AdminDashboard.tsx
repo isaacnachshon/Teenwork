@@ -20,34 +20,16 @@ interface ManagedUser {
     createdAt: string; // Formatted date
 }
 
-const userGrowthData = [
-    { name: 'ינואר', users: 400 },
-    { name: 'פברואר', users: 300 },
-    { name: 'מרץ', users: 500 },
-    { name: 'אפריל', users: 780 },
-    { name: 'מאי', users: 600 },
-    { name: 'יוני', users: 900 },
-    { name: 'יולי', users: 1100 },
-];
+const MONTHS_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
 
-const revenueData = [
-    { name: 'ינואר', revenue: 2400 },
-    { name: 'פברואר', revenue: 1398 },
-    { name: 'מרץ', revenue: 9800 },
-    { name: 'אפריל', revenue: 3908 },
-    { name: 'מאי', revenue: 4800 },
-    { name: 'יוני', revenue: 3800 },
-    { name: 'יולי', revenue: 4300 },
-];
-
-const jobCategoryData = [
-    { name: 'מלצרות', value: 400 },
-    { name: 'בייביסיטר', value: 300 },
-    { name: 'קייטרינג', value: 300 },
-    { name: 'ניקיון', value: 200 },
-    { name: 'שיעורים', value: 278 },
-    { name: 'אחר', value: 189 },
-];
+function computeMonthlyCount(dates: Date[], nMonths: number): { name: string; count: number }[] {
+    const now = new Date();
+    return Array.from({ length: nMonths }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (nMonths - 1 - i), 1);
+        const count = dates.filter(date => date?.getMonth() === d.getMonth() && date?.getFullYear() === d.getFullYear()).length;
+        return { name: MONTHS_HE[d.getMonth()], count };
+    });
+}
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f'];
 
@@ -273,6 +255,11 @@ const UserTable: React.FC<{ users: ManagedUser[], isLoading: boolean, onDelete: 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     const [teens, setTeens] = useState<ManagedUser[]>([]);
     const [employers, setEmployers] = useState<ManagedUser[]>([]);
+    const [jobsCount, setJobsCount] = useState<number | null>(null);
+    const [applicationsCount, setApplicationsCount] = useState<number | null>(null);
+    const [userGrowthData, setUserGrowthData] = useState<{ name: string; count: number }[]>([]);
+    const [applicationsChartData, setApplicationsChartData] = useState<{ name: string; count: number }[]>([]);
+    const [jobCategoryData, setJobCategoryData] = useState<{ name: string; value: number }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'teens' | 'employers'>('teens');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -284,7 +271,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             const teenQuery = query(collection(db, "users"), where("role", "==", "teen"));
             const employerQuery = query(collection(db, "users"), where("role", "==", "employer"));
 
-            const [teenSnapshot, employerSnapshot] = await Promise.all([getDocs(teenQuery), getDocs(employerQuery)]);
+            const [teenSnapshot, employerSnapshot, jobsSnapshot, appsSnapshot] = await Promise.all([
+                getDocs(teenQuery),
+                getDocs(employerQuery),
+                getDocs(collection(db, "jobs")),
+                getDocs(collection(db, "applications")),
+            ]);
+
+            setJobsCount(jobsSnapshot.size);
+            setApplicationsCount(appsSnapshot.size);
+
+            // Compute user growth chart from real registration dates
+            const allUserDates = [
+                ...teenSnapshot.docs.map(d => (d.data().createdAt as Timestamp)?.toDate()),
+                ...employerSnapshot.docs.map(d => (d.data().createdAt as Timestamp)?.toDate()),
+            ].filter(Boolean) as Date[];
+            setUserGrowthData(computeMonthlyCount(allUserDates, 7));
+
+            // Compute job category pie chart from real job types
+            const categoryMap: Record<string, number> = {};
+            jobsSnapshot.docs.forEach(d => {
+                const type: string = d.data().type || 'אחר';
+                categoryMap[type] = (categoryMap[type] || 0) + 1;
+            });
+            setJobCategoryData(Object.entries(categoryMap).map(([name, value]) => ({ name, value })));
+
+            // Compute applications bar chart from real application dates
+            const appDates = appsSnapshot.docs.map(d => (d.data().createdAt as Timestamp)?.toDate()).filter(Boolean) as Date[];
+            setApplicationsChartData(computeMonthlyCount(appDates, 7));
 
             const teensList = teenSnapshot.docs.map(doc => {
                 const data = doc.data();
@@ -361,7 +375,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     <div className="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
                         <div>
                             <p className="text-gray-500">סה"כ משרות</p>
-                            <p className="text-3xl font-bold text-gray-800">1,245</p>
+                            <p className="text-3xl font-bold text-gray-800">{jobsCount ?? '...'}</p>
                         </div>
                         <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
                             <UserPlusIcon className="w-6 h-6" />
@@ -369,8 +383,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
                         <div>
-                            <p className="text-gray-500">הכנסות החודש</p>
-                            <p className="text-3xl font-bold text-gray-800">4,300 ₪</p>
+                            <p className="text-gray-500">סה"כ מועמדויות</p>
+                            <p className="text-3xl font-bold text-gray-800">{applicationsCount ?? '...'}</p>
                         </div>
                         <div className="p-3 bg-green-100 text-green-600 rounded-full">
                             <UserPlusIcon className="w-6 h-6" />
@@ -388,19 +402,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="users" stroke="#8884d8" name="משתמשים חדשים" />
+                            <Line type="monotone" dataKey="count" stroke="#8884d8" name="משתמשים חדשים" />
                         </LineChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                <ChartContainer title="הכנסות חודשיות">
+                <ChartContainer title="מועמדויות חודשיות">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revenueData}>
+                        <BarChart data={applicationsChartData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="revenue" fill="#82ca9d" name="הכנסה בשקלים" />
+                            <Bar dataKey="count" fill="#82ca9d" name="מועמדויות" />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -410,7 +424,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 <ChartContainer title="קטגוריות משרות פופולריות">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Pie data={jobCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name" label={(entry) => entry.name}>
+                            <Pie data={jobCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name" label={(entry: { name: string }) => entry.name}>
                                 {jobCategoryData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}

@@ -8,19 +8,19 @@ import LoginPage from './components/LoginPage';
 import EmployerLoginPage from './components/EmployerLoginPage';
 import TeenLoginPage from './components/TeenLoginPage';
 import LandingPage from './components/LandingPage';
+import AboutPage from './components/AboutPage';
 import EmailVerificationPage from './components/EmailVerificationPage';
-// REMOVED: AdminSetup and AdminPasswordReset (Phase 1 security fix)
 import { UserIcon, BriefcaseIcon, ShieldCheckIcon } from './components/icons';
 
 import { auth, db, getFirebaseInitError } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
-type Role = 'landing' | 'teen' | 'employer' | 'admin';
+type Role = 'landing' | 'about' | 'teen' | 'employer' | 'admin';
 
 type CurrentUser = {
   firebaseUser: User;
-  role: Exclude<Role, 'landing'>;
+  role: Exclude<Role, 'landing' | 'about'>;
 };
 
 const App: React.FC = () => {
@@ -28,8 +28,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
-  // REMOVED: showAdminSetup and showPasswordReset state (Phase 1 security fix)
-
+  const [hideGlobalHeader, setHideGlobalHeader] = useState(false);
 
   useEffect(() => {
     // If Firebase failed to initialize, surface the error immediately.
@@ -62,10 +61,6 @@ const App: React.FC = () => {
           if (docSnap.exists()) {
             const userData = docSnap.data();
             role = userData.role as Exclude<Role, 'landing'>;
-          } else if (user.email === 'isaacnachshon@gmail.com') {
-            // Fallback for hardcoded admin if doc doesn't exist
-            console.warn('User doc for admin not found; using legacy admin fallback.');
-            role = 'admin';
           }
 
           if (role) {
@@ -93,7 +88,7 @@ const App: React.FC = () => {
             // We keep 'loading' true or allow the UI to handle the waiting state.
             // Optionally, we could set a timeout here if we wanted to enforce strictly, 
             // but relying on the snapshot update is cleaner for the happy path.
-            console.log('User authenticated but profile document not found yet. Waiting for creation...');
+            // Profile doc may not exist yet — the onSnapshot listener will fire again when it's created.
           }
         }, (error) => {
           console.error("Error listening to user doc:", error);
@@ -127,13 +122,16 @@ const App: React.FC = () => {
 
   const dashboard = useMemo(() => {
     switch (view) {
+      case 'about':
+        return <AboutPage onBack={() => setView('landing')} />;
+
       case 'landing':
         return <LandingPage onRoleSelect={handleRoleChange} />;
 
       case 'teen':
         if (currentUser?.role === 'teen') {
           if (currentUser.firebaseUser.emailVerified) {
-            return <TeenDashboard onLogout={handleLogout} />;
+            return <TeenDashboard onLogout={handleLogout} onHeaderVisibilityChange={setHideGlobalHeader} />;
           } else {
             return <EmailVerificationPage user={currentUser.firebaseUser} />;
           }
@@ -169,15 +167,15 @@ const App: React.FC = () => {
           return '';
       }
     }
-    return `${baseClasses} bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700`;
+    return `${baseClasses} bg-white text-gray-700 hover:bg-gray-100`;
   };
 
-  const showHeader = view !== 'landing';
+  const showHeader = view !== 'landing' && !hideGlobalHeader;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="text-2xl font-bold text-gray-700 dark:text-gray-200">טוען...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-2xl font-bold text-gray-700">טוען...</div>
       </div>
     );
   }
@@ -195,19 +193,17 @@ const App: React.FC = () => {
     );
   }
 
-  // REMOVED: Admin setup and password reset pages (Phase 1 security fix)
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
       {showHeader && (
-        <header className="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-50 animate-in fade-in-0 duration-300 transition-colors duration-300">
+        <header className="bg-white shadow-md p-4 sticky top-0 z-50 animate-in fade-in-0 duration-300">
           <div className="container mx-auto flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <button onClick={() => setView('landing')} className="text-2xl font-bold text-purple-600 dark:text-purple-400 focus:outline-none transition-transform duration-200 hover:scale-105">
+              <button onClick={() => setView('landing')} aria-label="TEENWORK - חזרה לדף הבית" className="text-2xl font-bold text-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded transition-transform duration-200 hover:scale-105">
                 TEENWORK
               </button>
             </div>
-            <div className="flex items-center gap-4 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl transition-colors duration-300">
+            <div className="flex items-center gap-4 bg-gray-100 p-2 rounded-xl">
               <button onClick={() => handleRoleChange('teen')} className={getButtonClass('teen')}>
                 <UserIcon className="w-5 h-5" />
                 <span>נוער</span>
@@ -224,7 +220,7 @@ const App: React.FC = () => {
           </div>
         </header>
       )}
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {dashboard}
       </main>
     </div>

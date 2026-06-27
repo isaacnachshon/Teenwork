@@ -7,7 +7,8 @@ import {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
-    sendEmailVerification
+    sendEmailVerification,
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -23,6 +24,9 @@ const TeenLoginPage: React.FC = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetSuccess, setResetSuccess] = useState('');
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -105,6 +109,26 @@ const TeenLoginPage: React.FC = () => {
         }
     };
 
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setResetSuccess('');
+        if (!resetEmail.trim()) { setError('נא להזין כתובת אימייל.'); return; }
+        setIsLoading(true);
+        try {
+            await sendPasswordResetEmail(auth, resetEmail);
+            setResetSuccess('קישור לאיפוס סיסמה נשלח! בדוק את תיבת הדואר שלך.');
+        } catch (err: any) {
+            if (err.code === 'auth/user-not-found') {
+                setError('לא נמצא חשבון עם כתובת אימייל זו.');
+            } else {
+                setError('שליחה נכשלה. נסה שוב.');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleGoogleLogin = async () => {
         setError('');
         setIsGoogleLoading(true);
@@ -157,7 +181,23 @@ const TeenLoginPage: React.FC = () => {
                     <h1 className="text-3xl font-bold text-center text-gray-800">{authMode === 'login' ? 'כניסה' : 'הרשמה'}</h1>
                     <p className="text-center text-gray-500">{authMode === 'login' ? 'שמחים לראות אותך שוב!' : 'צור חשבון חדש והתחל לעבוד'}</p>
                 </div>
-                {authMode === 'login' ? (
+                {isForgotPassword ? (
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <p className="text-sm text-gray-600 text-center">הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה.</p>
+                        <div>
+                            <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700">כתובת אימייל</label>
+                            <input id="reset-email" type="email" required value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="your@email.com" />
+                        </div>
+                        {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
+                        {resetSuccess && <p role="status" className="text-sm text-green-600 text-center">{resetSuccess}</p>}
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            {isLoading ? 'שולח...' : 'שלח קישור לאיפוס'}
+                        </button>
+                        <button type="button" onClick={() => { setIsForgotPassword(false); setError(''); setResetSuccess(''); }} className="w-full text-sm text-gray-500 hover:underline">
+                            חזרה להתחברות
+                        </button>
+                    </form>
+                ) : authMode === 'login' ? (
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">כתובת אימייל</label>
@@ -166,8 +206,11 @@ const TeenLoginPage: React.FC = () => {
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">סיסמה</label>
                             <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="********" />
+                            <div className="text-left mt-1">
+                                <button type="button" onClick={() => { setIsForgotPassword(true); setError(''); setResetEmail(email); }} className="text-sm text-purple-600 hover:underline">שכחת סיסמה?</button>
+                            </div>
                         </div>
-                        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+                        {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
                         <div>
                             <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isLoading ? 'מתחבר...' : 'התחברות'}
@@ -208,7 +251,7 @@ const TeenLoginPage: React.FC = () => {
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">אימות סיסמה</label>
                             <input id="confirmPassword" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="********" />
                         </div>
-                        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+                        {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
                         <div>
                             <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isLoading ? 'יוצר חשבון...' : 'הרשמה'}
@@ -237,7 +280,7 @@ const TeenLoginPage: React.FC = () => {
                 </div>
                 <p className="text-center text-sm text-gray-600 mt-6">
                     {authMode === 'login' ? 'אין לך עדיין חשבון? ' : 'יש לך כבר חשבון? '}
-                    <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="font-semibold text-purple-600 hover:underline focus:outline-none">
+                    <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="font-semibold text-purple-600 hover:underline focus:outline-none focus:ring-2 focus:ring-purple-500 rounded">
                         {authMode === 'login' ? 'הרשם כאן' : 'התחבר'}
                     </button>
                 </p>

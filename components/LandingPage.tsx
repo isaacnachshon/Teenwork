@@ -18,10 +18,10 @@ import {
     FacebookIcon
 } from './icons';
 
-import LanguageSelector from './LanguageSelector';
+import LegalModal from './LegalModal';
 
 interface LandingPageProps {
-    onRoleSelect: (role: 'teen' | 'employer' | 'admin') => void;
+    onRoleSelect: (role: 'teen' | 'employer' | 'admin' | 'about') => void;
 }
 
 const partners = [
@@ -42,8 +42,8 @@ const categories = [
 ];
 
 const testimonials = [
-    { name: 'דניאל כהן', role: 'נער, 17', quote: 'מצאתי עבודה תוך פחות משבוע! האפליקציה סופר נוחה ועזרה לי למצוא עבודה גמישה ליד הבית.', image: 'https://picsum.photos/id/1025/100/100' },
-    { name: 'שרה לוי', role: 'בעלת קייטרינג', quote: 'TEENWORK שינו לי את החיים. אני מוצאת עובדים איכותיים וזמינים לאירועים שלי בכמה קליקים. ממליצה בחום!', image: 'https://picsum.photos/id/1027/100/100' },
+    { name: 'מאיה כהן', role: 'נערה, 16 — תל אביב', quote: 'מצאתי לקוחה לבייביסיטינג ומשמרת קייטרינג בשבוע אחד. הרווחתי ₪2,200 ב-3 שבועות והפסקתי לבקש כסף מאמא.', image: 'https://picsum.photos/id/1005/100/100' },
+    { name: 'שרה לוי', role: 'בעלת קייטרינג', quote: 'פרסמתי משרה ביום ראשון ועד יום רביעי כבר היה לי עובד איכותי. TEENWORK חסכה לי שעות של חיפוש.', image: 'https://picsum.photos/id/1027/100/100' },
 ];
 
 const CategoryCard: React.FC<{ category: typeof categories[0] }> = ({ category }) => (
@@ -83,22 +83,20 @@ const TestimonialCard: React.FC<{ testimonial: typeof testimonials[0] }> = ({ te
 
 const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
     const [howItWorksView, setHowItWorksView] = useState<'teen' | 'employer'>('teen');
+    const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
     return (
         <div className="bg-white text-gray-800 font-sans">
-            <header className="relative py-6 px-4 sm:px-6 lg:px-8 bg-gray-50/50 backdrop-blur-sm theme-transition">
-                <nav className="container mx-auto flex justify-between items-center">
+            <header className="relative py-6 px-4 sm:px-6 lg:px-8 bg-gray-50/50 backdrop-blur-sm">
+                <nav aria-label="ניווט ראשי" className="container mx-auto flex justify-between items-center">
                     <a href="#" className="text-3xl font-bold text-purple-600">TEENWORK</a>
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#categories" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">קטגוריות</a>
                         <a href="#how-it-works" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">איך זה עובד</a>
                         <a href="#testimonials" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">המלצות</a>
+                        <button onClick={() => onRoleSelect('about')} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">אודות</button>
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* Language Selector */}
-                        <div className="flex items-center gap-2 mr-4">
-                            <LanguageSelector />
-                        </div>
                         <button onClick={() => onRoleSelect('teen')} className="font-bold text-purple-600 hover:opacity-80 transition-opacity">כניסה</button>
                         <button onClick={() => onRoleSelect('employer')} className="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">פרסם משרה</button>
                     </div>
@@ -109,21 +107,49 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                 {/* Hero Section */}
                 <section className="text-center py-20 px-4 bg-gray-50">
                     <div className="container mx-auto">
-                        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 leading-tight animate-in fade-in-0 slide-in-from-top-4 duration-500">
-                            העבודה הראשונה שלך <br /> מתחילה <span className="text-purple-600">כאן</span>
-                        </h1>
-                        <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto animate-in fade-in-0 duration-500 delay-100">
-                            הצטרפו לאלפי בני נוער שכבר מצאו עבודה, ולמאות מעסיקים שמגייסים את הדור הבא של העובדים.
-                        </p>
-                        <div className="mt-8 max-w-2xl mx-auto animate-in fade-in-0 duration-500 delay-200">
-                            <div className="relative">
-                                <input type="text" placeholder="מה לחפש? (לדוגמה: מלצרות בתל אביב)" className="w-full text-lg ps-14 pe-4 py-4 rounded-full bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                                <SearchIcon className="absolute top-1/2 right-5 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                            </div>
+                        <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 text-sm font-bold px-4 py-2 rounded-full mb-6 animate-in fade-in-0 duration-500">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                            143 נרשמו השבוע · 89 כבר עובדים
                         </div>
-                        <div className="mt-6 flex justify-center gap-4 animate-in fade-in-0 duration-500 delay-300">
-                            <button onClick={() => onRoleSelect('teen')} className="bg-purple-600 text-white font-bold py-3 px-8 rounded-full hover:bg-purple-700 transition-colors text-lg">אני רוצה לעבוד</button>
-                            <button onClick={() => onRoleSelect('employer')} className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-colors text-lg ring-1 ring-inset ring-gray-300">אני רוצה להעסיק</button>
+                        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 leading-tight animate-in fade-in-0 slide-in-from-top-4 duration-500">
+                            47 משרות בטווח 5 ק"מ ממך.<br />
+                            <span className="text-purple-600">ואתה עדיין גולל.</span>
+                        </h1>
+                        <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto animate-in fade-in-0 duration-500 delay-100">
+                            TEENWORK מוצאת לבני נוער גילאי 14–18 עבודה חלקית — לפי מרחק הליכה, יום ושעה.<br className="hidden md:block" />
+                            ללא רכב. לרוב ללא ניסיון. מתחילים השבוע.
+                        </p>
+                        <div className="mt-8 flex justify-center gap-4 animate-in fade-in-0 duration-500 delay-200 flex-wrap">
+                            <button onClick={() => onRoleSelect('teen')} className="bg-purple-600 text-white font-bold py-3 px-8 rounded-full hover:bg-purple-700 transition-colors text-lg shadow-lg shadow-purple-200">
+                                מצא עבודה קרוב אלי ←
+                            </button>
+                            <button onClick={() => onRoleSelect('employer')} className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-colors text-lg ring-1 ring-inset ring-gray-300">
+                                אני מעסיק — פרסם משרה חינם
+                            </button>
+                        </div>
+                        <p className="mt-3 text-sm text-gray-400 animate-in fade-in-0 duration-500 delay-300">הרשמה ב-2 דקות · חינם לגמרי</p>
+                    </div>
+                </section>
+
+                {/* Objection Busters Section */}
+                <section className="py-16 px-4 bg-white">
+                    <div className="container mx-auto max-w-3xl">
+                        <h2 className="text-2xl font-bold text-gray-800 text-center mb-10">את כל התירוצים — כבר פתרנו</h2>
+                        <div className="space-y-5">
+                            {[
+                                { excuse: '"אין מי שמגייס בני נוער"', fix: '6 סוגי עבודות שמגייסות מגיל 14. עכשיו, בקרבתך.' },
+                                { excuse: '"אין לי רכב"', fix: 'משרות מסוננות לפי מרחק הליכה מהבית. עד 5 ק"מ כברירת מחדל.' },
+                                { excuse: '"השעות שלי מסובכות"', fix: 'סנן לפי יום, שעה ומשך המשמרת — לא רק שכונה.' },
+                                { excuse: '"אני לא יודע אם העבודה בסדר"', fix: 'הזכויות שלך לפי חוק עבודת נוער מופיעות על כל משרה, לפני שאתה מגיש מועמדות.' },
+                            ].map(({ excuse, fix }) => (
+                                <div key={excuse} className="flex gap-4 items-start bg-gray-50 rounded-xl p-5">
+                                    <div className="text-red-400 text-xl mt-0.5">✗</div>
+                                    <div>
+                                        <p className="text-gray-500 line-through text-sm">{excuse}</p>
+                                        <p className="text-gray-800 font-semibold mt-1">✓ {fix}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -212,7 +238,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     <div>
                         <h3 className="font-bold mb-3">ניווט מהיר</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="text-gray-400 hover:text-white">אודות</a></li>
+                            <li><button onClick={() => onRoleSelect('about')} className="text-gray-400 hover:text-white text-right">אודות</button></li>
                             <li><a href="#" className="text-gray-400 hover:text-white">חיפוש עבודות</a></li>
                             <li><a href="#" className="text-gray-400 hover:text-white">למעסיקים</a></li>
                             <li><a href="#" className="text-gray-400 hover:text-white">צור קשר</a></li>
@@ -222,16 +248,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     <div>
                         <h3 className="font-bold mb-3">משפטי</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="text-gray-400 hover:text-white">תקנון שימוש</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white">מדיניות פרטיות</a></li>
+                            <li><button onClick={() => setLegalModal('terms')} className="text-gray-400 hover:text-white text-right">תקנון שימוש</button></li>
+                            <li><button onClick={() => setLegalModal('privacy')} className="text-gray-400 hover:text-white text-right">מדיניות פרטיות</button></li>
                         </ul>
                     </div>
                     <div>
                         <h3 className="font-bold mb-3">עקבו אחרינו</h3>
                         <div className="flex gap-4">
-                            <a href="#" className="text-gray-400 hover:text-white"><LinkedinIcon className="w-6 h-6" /></a>
-                            <a href="#" className="text-gray-400 hover:text-white"><InstagramIcon className="w-6 h-6" /></a>
-                            <a href="#" className="text-gray-400 hover:text-white"><FacebookIcon className="w-6 h-6" /></a>
+                            <a href="#" aria-label="לינקדאין" className="text-gray-400 hover:text-white"><LinkedinIcon className="w-6 h-6" aria-hidden="true" /></a>
+                            <a href="#" aria-label="אינסטגרם" className="text-gray-400 hover:text-white"><InstagramIcon className="w-6 h-6" aria-hidden="true" /></a>
+                            <a href="#" aria-label="פייסבוק" className="text-gray-400 hover:text-white"><FacebookIcon className="w-6 h-6" aria-hidden="true" /></a>
                         </div>
                     </div>
                 </div>
@@ -239,6 +265,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     &copy; {new Date().getFullYear()} TEENWORK. כל הזכויות שמורות.
                 </div>
             </footer>
+
+            {legalModal && (
+                <LegalModal initialTab={legalModal} onClose={() => setLegalModal(null)} />
+            )}
         </div>
     );
 };

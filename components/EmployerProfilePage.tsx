@@ -120,7 +120,6 @@ const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onSave }) => 
                 uid: user.uid,
             }, { merge: true });
 
-            console.log("Employer profile saved successfully");
             onSave();
         } catch (error) {
             console.error('Error saving employer profile:', error);

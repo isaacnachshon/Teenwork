@@ -1,51 +1,47 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Job } from '../types';
-import { MapPinIcon, DollarSignIcon, SearchIcon } from './icons';
+import { MapPinIcon, DollarSignIcon, SearchIcon, MapIcon, BriefcaseIcon } from './icons';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import JobMap from './JobMap';
 
 interface JobsPageProps {
     onViewJobDetails: (job: Job) => void;
     userLocation?: { lat: number; lng: number };
 }
 
-// Helper function to calculate distance in km
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    return d;
+    return R * c;
 }
-
-function deg2rad(deg: number): number {
-    return deg * (Math.PI / 180);
-}
-
-// Mock data, can be moved to a separate file later
-const jobs: Job[] = [
-    { id: '1', title: 'מלצר/ית באירוע', company: 'קייטרינג "השף המעופף"', location: 'תל אביב', coordinates: { lat: 32.0853, lng: 34.7818 }, salary: 45, type: 'מלצרות', description: 'עבודה כיפית ודינאמית באירועי ערב יוקרתיים. דרושים נערים ונערות חייכנים ואנרגטיים לעבודה באירועים בסופי שבוע. אין צורך בניסיון קודם - הכשרה תינתן במקום. שכר גבוה ותנאים מעולים למתאימים.', skills: ['שירותיות', 'עבודת צוות', 'זריזות'], experience: 'ללא ניסיון', days: ['חמישי', 'שישי'], startTime: '18:00', endTime: '02:00' },
-    { id: '2', title: 'בייביסיטר אנרגטי/ת', company: 'משפחת כהן', location: 'רמת גן', coordinates: { lat: 32.0826, lng: 34.8093 }, salary: 40, type: 'בייביסיטר', description: 'לשמור על שני ילדים מקסימים (גילאי 4 ו-7) בשעות אחר הצהריים, פעמיים בשבוע. כולל הוצאה מהגן, משחק והכנת ארוחת ערב קלה.', skills: ['גישה לילדים', 'אחריות', 'סבלנות'], experience: 'ניסיון בסיסי' },
-    { id: '3', title: 'עזרה בהכנת שיעורי בית', company: 'דניאל', location: 'הרצליה', coordinates: { lat: 32.166, lng: 34.8432 }, salary: 50, type: 'שיעורים', description: 'עזרה במתמטיקה ואנגלית לתלמיד כיתה ח\'.' },
-    { id: '4', title: 'עובד/ת ניקיון למשרד', company: 'WeClean', location: 'פתח תקווה', coordinates: { lat: 32.0939, lng: 34.8825 }, salary: 42, type: 'ניקיון', description: 'ניקיון משרדי הייטק בשעות הערב.' },
-    { id: '5', title: 'סדרן/ית בקולנוע', company: 'סינמה סיטי', location: 'ראשון לציון', coordinates: { lat: 31.972, lng: 34.789 }, salary: 38, type: 'מלצרות', description: 'עבודה באווירה צעירה ודינמית בסופי שבוע.' },
-    { id: '6', title: 'מוכר/ת בחנות בגדים', company: 'קסטרו', location: 'תל אביב', coordinates: { lat: 32.073, lng: 34.792 }, salary: 40, type: 'מלצרות', description: 'דרושים/ות מוכרים/ות אנרגטיים/ות עם אהבה לאופנה.' },
-    { id: '7', title: 'צוות הפעלה בימי הולדת', company: 'הפעלות וכיף', location: 'חולון', coordinates: { lat: 32.016, lng: 34.776 }, salary: 55, type: 'בייביסיטר', description: 'להפעיל ילדים בימי הולדת, דרוש/ה ניסיון וגישה לילדים.' },
-    { id: '8', title: 'שליח/ה בפיצריה', company: 'פיצה האט', location: 'בת ים', coordinates: { lat: 32.017, lng: 34.745 }, salary: 45, type: 'מלצרות', description: 'שליחויות על אופניים חשמליים באזור בת ים. טיפים טובים.' },
-];
 
 const jobTypes: Job['type'][] = ['קייטרינג', 'ניקיון', 'בייביסיטר', 'שיעורים', 'מלצרות', 'סבלות'];
 
 const JobCard: React.FC<{ job: Job; onViewDetails: (job: Job) => void; distance?: number }> = ({ job, onViewDetails, distance }) => (
     <div className="bg-white p-4 rounded-xl shadow-md flex flex-col gap-3 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
         <div className="flex justify-between items-start">
-            <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
+            <div className="flex items-center gap-3 flex-1">
+                {job.companyLogoUrl ? (
+                    <img src={job.companyLogoUrl} alt={job.company} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                        <BriefcaseIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                )}
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
+                    <p className="text-sm text-gray-600">{job.company}</p>
+                </div>
+            </div>
             <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-full">{job.type}</span>
         </div>
-        <p className="text-sm text-gray-600">{job.company}</p>
         <div className="flex items-center text-gray-500 text-sm gap-4">
             <div className="flex items-center gap-1">
                 <MapPinIcon className="w-4 h-4" />
@@ -56,11 +52,11 @@ const JobCard: React.FC<{ job: Job; onViewDetails: (job: Job) => void; distance?
                 <span>{job.salary} ₪ לשעה</span>
             </div>
         </div>
-        {distance !== undefined && (
+        {distance !== undefined && distance !== Infinity && (
             <p className="text-xs text-purple-600 font-semibold">📍 מרחק: {distance.toFixed(1)} ק"מ</p>
         )}
-        <p className="text-sm text-gray-500 flex-grow">{job.description}</p>
-        <button onClick={() => onViewDetails(job)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 mt-2">הגש מועמדות</button>
+        <p className="text-sm text-gray-500 flex-grow line-clamp-2">{job.description}</p>
+        <button onClick={() => onViewDetails(job)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 mt-2">צפה בפרטים</button>
     </div>
 );
 
@@ -69,6 +65,27 @@ const JobsPage: React.FC<JobsPageProps> = ({ onViewJobDetails, userLocation }) =
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState<Job['type'] | 'all'>('all');
     const [sortByDistance, setSortByDistance] = useState(false);
+    const [showMap, setShowMap] = useState(false);
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [loadingJobs, setLoadingJobs] = useState(true);
+
+    useEffect(() => {
+        const fetchJobs = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'jobs'));
+                const fetchedJobs: Job[] = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as Job[];
+                setJobs(fetchedJobs);
+            } catch (error) {
+                console.error("Error fetching jobs:", error);
+            } finally {
+                setLoadingJobs(false);
+            }
+        };
+        fetchJobs();
+    }, []);
 
     const filteredJobs = useMemo(() => {
         let result = jobs.filter(job => {
@@ -87,23 +104,43 @@ const JobsPage: React.FC<JobsPageProps> = ({ onViewJobDetails, userLocation }) =
         }
 
         return result;
-    }, [searchTerm, selectedType, sortByDistance, userLocation]);
+    }, [searchTerm, selectedType, sortByDistance, userLocation, jobs]);
 
     return (
         <div className="animate-in fade-in-0 duration-500">
             <div className="flex justify-between items-center mb-2">
                 <h1 className="text-3xl font-bold text-gray-800">חיפוש עבודות</h1>
-                {userLocation && (
+                <div className="flex items-center gap-2">
                     <button
-                        onClick={() => setSortByDistance(!sortByDistance)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${sortByDistance ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+                        onClick={() => setShowMap(!showMap)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${showMap ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
                     >
-                        <MapPinIcon className="w-4 h-4" />
-                        {sortByDistance ? 'מציג קרוב לרחוק' : 'מיין לפי מרחק'}
+                        <MapIcon className="w-4 h-4" />
+                        {showMap ? 'הסתר מפה' : 'הצג מפה'}
                     </button>
-                )}
+                    {userLocation && (
+                        <button
+                            onClick={() => setSortByDistance(!sortByDistance)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${sortByDistance ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+                        >
+                            <MapPinIcon className="w-4 h-4" />
+                            {sortByDistance ? 'מציג קרוב לרחוק' : 'מיין לפי מרחק'}
+                        </button>
+                    )}
+                </div>
             </div>
             <p className="text-gray-500 mb-6">מצא את העבודה הבאה שלך כאן.</p>
+
+            {showMap && (
+                <div className="mb-8">
+                    <JobMap
+                        jobs={filteredJobs}
+                        userLocation={userLocation}
+                        onJobClick={onViewJobDetails}
+                        height="350px"
+                    />
+                </div>
+            )}
 
             <div className="mb-6">
                 <div className="relative">
@@ -136,20 +173,26 @@ const JobsPage: React.FC<JobsPageProps> = ({ onViewJobDetails, userLocation }) =
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredJobs.length > 0 ? (
-                    filteredJobs.map(job => (
-                        <JobCard
-                            key={job.id}
-                            job={job}
-                            onViewDetails={onViewJobDetails}
-                            distance={(job as any).distance}
-                        />
-                    ))
-                ) : (
-                    <p className="md:col-span-3 text-center text-gray-500 py-10">לא נמצאו עבודות התואמות את החיפוש.</p>
-                )}
-            </div>
+            {loadingJobs ? (
+                <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredJobs.length > 0 ? (
+                        filteredJobs.map(job => (
+                            <JobCard
+                                key={job.id}
+                                job={job}
+                                onViewDetails={onViewJobDetails}
+                                distance={(job as any).distance}
+                            />
+                        ))
+                    ) : (
+                        <p className="md:col-span-3 text-center text-gray-500 py-10">לא נמצאו עבודות התואמות את החיפוש.</p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

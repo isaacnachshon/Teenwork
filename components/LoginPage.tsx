@@ -49,33 +49,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if this is the admin email
-      if (user.email !== 'isaacnachshon@gmail.com') {
-        await auth.signOut();
-        setError('רק חשבון המנהל מורשה להתחבר דרך Google.');
-        setIsGoogleLoading(false);
-        return;
-      }
-
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (!userDoc.exists()) {
-        // Create admin account
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName || 'Admin',
-          profileImageUrl: user.photoURL,
-          role: 'admin',
-          createdAt: new Date(),
-        });
-      } else {
-        // Update role to admin if not already
-        const userData = userDoc.data();
-        if (userData.role !== 'admin') {
-          await setDoc(userDocRef, { role: 'admin' }, { merge: true });
-        }
+      if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+        await auth.signOut();
+        setError('אין לך הרשאות מנהל. פנה למנהל המערכת.');
+        setIsGoogleLoading(false);
+        return;
       }
 
       if (onLoginSuccess) {
@@ -142,7 +123,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
 
           <div>
             <button

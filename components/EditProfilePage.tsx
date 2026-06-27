@@ -74,7 +74,6 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                 const downloadURL = await getDownloadURL(storageRef);
 
                 setFormData(prev => ({ ...prev, parentalConsentUrl: downloadURL }));
-                console.log("Consent form uploaded:", downloadURL);
             } catch (error) {
                 console.error("Error uploading consent form:", error);
                 alert("שגיאה בהעלאת הקובץ. נסה שוב.");
