@@ -23,12 +23,18 @@ const statusLabels: Record<string, string> = {
     new: 'חדש',
     viewed: 'נצפה',
     contacted: 'נוצר קשר',
+    interview: 'ראיון',
+    accepted: 'התקבל/ה',
+    rejected: 'נדחה',
 };
 
 const statusColors: Record<string, string> = {
     new: 'bg-green-100 text-green-800',
     viewed: 'bg-yellow-100 text-yellow-800',
     contacted: 'bg-blue-100 text-blue-800',
+    interview: 'bg-purple-100 text-purple-800',
+    accepted: 'bg-emerald-100 text-emerald-800',
+    rejected: 'bg-red-100 text-red-800',
 };
 
 const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, onViewProfile }) => {
@@ -133,6 +139,9 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
                                     <option value="new">{statusLabels.new}</option>
                                     <option value="viewed">{statusLabels.viewed}</option>
                                     <option value="contacted">{statusLabels.contacted}</option>
+                                    <option value="interview">{statusLabels.interview}</option>
+                                    <option value="accepted">{statusLabels.accepted}</option>
+                                    <option value="rejected">{statusLabels.rejected}</option>
                                 </select>
                                 <button onClick={() => onViewProfile(applicant.applicantId)} className="text-blue-600 font-semibold hover:underline">צפה בפרופיל</button>
                             </div>

@@ -23,6 +23,9 @@ interface UserData {
   profileImageUrl?: string;
   companyLogoUrl?: string;
   profileCompleted?: boolean;
+  cvUrl?: string;
+  cvFileName?: string;
+  availability?: string[];
 }
 
 const ProfileTab: React.FC<Props> = ({ role }) => {
@@ -33,7 +36,9 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
   const [form, setForm] = useState<UserData>({});
   const [newSkill, setNewSkill] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingCv, setUploadingCv] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cvRef = useRef<HTMLInputElement>(null);
 
   const uid = auth?.currentUser?.uid;
 
@@ -64,6 +69,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
         updates.school = form.school || '';
         updates.bio = form.bio || '';
         updates.skills = form.skills || [];
+        updates.availability = form.availability || [];
       } else if (role === 'employer') {
         updates.companyName = form.companyName || '';
         updates.phone = form.phone || '';
@@ -103,6 +109,35 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || !uid) return;
+    const file = e.target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      alert('הקובץ גדול מדי. מקסימום 5MB.');
+      return;
+    }
+    setUploadingCv(true);
+    try {
+      const storageRef = ref(storage, `cvs/${uid}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, 'users', uid), { cvUrl: url, cvFileName: file.name, updatedAt: serverTimestamp() });
+      setUserData(prev => prev ? { ...prev, cvUrl: url, cvFileName: file.name } : prev);
+      setForm(prev => ({ ...prev, cvUrl: url, cvFileName: file.name }));
+    } catch (err) {
+      console.error('Failed to upload CV:', err);
+    } finally {
+      setUploadingCv(false);
+    }
+  };
+
+  const toggleAvailability = (day: string) => {
+    setForm(prev => {
+      const current = prev.availability || [];
+      return { ...prev, availability: current.includes(day) ? current.filter(d => d !== day) : [...current, day] };
+    });
   };
 
   const addSkill = () => {
@@ -223,6 +258,31 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
                     <button onClick={addSkill} style={{ padding: '8px 14px', borderRadius: 8, background: '#F3ECFE', color: '#5A18C2', border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>הוסף</button>
                   </div>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4A576E', marginBottom: 6 }}>קורות חיים (PDF/Word)</label>
+                  {form.cvUrl ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#E4F5EA', padding: '10px 14px', borderRadius: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#0E8A48', flex: 1 }}>{form.cvFileName || 'קו"ח הועלו'}</span>
+                      <button onClick={() => cvRef.current?.click()} style={{ fontSize: 13, color: '#5A18C2', background: '#F3ECFE', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>החלף</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => cvRef.current?.click()} disabled={uploadingCv} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '12px 14px', borderRadius: 10, border: '2px dashed #D1D5DB', background: '#FAFBFC', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#6B7689', justifyContent: 'center' }}>
+                      {uploadingCv ? 'מעלה...' : 'העלה קורות חיים'}
+                    </button>
+                  )}
+                  <input ref={cvRef} type="file" accept=".pdf,.doc,.docx" onChange={handleCvUpload} style={{ display: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4A576E', marginBottom: 6 }}>זמינות לעבודה</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי'].map(day => {
+                      const selected = (form.availability || []).includes(day);
+                      return (
+                        <button key={day} onClick={() => toggleAvailability(day)} style={{ padding: '8px 14px', borderRadius: 10, border: selected ? 'none' : '1px solid #E3E6EC', background: selected ? '#7B2FF6' : '#fff', color: selected ? '#fff' : '#4A576E', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{day}</button>
+                      );
+                    })}
+                  </div>
+                </div>
               </>
             ) : (
               <>
@@ -257,6 +317,24 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {userData.skills!.map(s => (
                         <span key={s} style={{ background: '#F3ECFE', color: '#5A18C2', padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {userData.cvUrl && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: 12, color: '#8A93A3', fontWeight: 600, marginBottom: 6 }}>קורות חיים</div>
+                    <a href={userData.cvUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E4F5EA', color: '#0E8A48', padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                      {userData.cvFileName || 'הורד קו"ח'}
+                    </a>
+                  </div>
+                )}
+                {(userData.availability || []).length > 0 && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: 12, color: '#8A93A3', fontWeight: 600, marginBottom: 6 }}>זמינות</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {userData.availability!.map(d => (
+                        <span key={d} style={{ background: '#F3ECFE', color: '#5A18C2', padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{d}</span>
                       ))}
                     </div>
                   </div>

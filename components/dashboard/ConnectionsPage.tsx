@@ -39,7 +39,8 @@ const BTN: Record<string, BtnStyle> = {
 const STATUS_MAP: Record<string, ConnStatus> = {
   new: 'pending',
   viewed: 'pending',
-  contacted: 'active',
+  contacted: 'pending',
+  interview: 'pending',
   accepted: 'active',
   rejected: 'rejected',
   completed: 'completed',

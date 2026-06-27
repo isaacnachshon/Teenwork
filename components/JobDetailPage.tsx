@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Job } from '../types';
 import { MapPinIcon, DollarSignIcon, ClockIcon, CalendarIcon, BriefcaseIcon, ChevronLeftIcon, RouteIcon } from './icons';
 import { auth, db } from '../firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 
 interface JobDetailPageProps {
     job: Job;
@@ -36,11 +36,15 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
 
         setApplyStatus('submitting');
         try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            const userData = userDoc.exists() ? userDoc.data() : {};
             await addDoc(collection(db, 'applications'), {
                 jobId: job.id,
                 jobTitle: job.title,
                 employerId: (job as any).employerId || null,
                 applicantId: user.uid,
+                teenName: userData.name || user.displayName || 'נער/ה',
+                employerName: job.company || 'מעסיק',
                 status: 'new',
                 createdAt: serverTimestamp(),
             });
