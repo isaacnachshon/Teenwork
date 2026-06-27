@@ -6,53 +6,33 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '@/firebase/firestore';
 import { storage } from '@/firebase/storage';
-
-export interface UserDoc {
-  uid: string;
-  displayName: string;
-  name?: string;
-  email: string;
-  photoURL?: string;
-  role: 'teen' | 'employer' | 'admin';
-  phone?: string;
-  city?: string;
-  birthDate?: string;
-  school?: string;
-  bio?: string;
-  skills?: string[];
-  companyName?: string;
-  profileImageUrl?: string;
-  companyLogoUrl?: string;
-  cvUrl?: string;
-  cvFileName?: string;
-  availability?: string[];
-  favoriteJobs?: string[];
-  profileCompleted?: boolean;
-  status?: string;
-  createdAt?: any;
-  updatedAt?: any;
-  lastLogin?: any;
-}
+import type { UserProfile } from '@/types';
 
 export const UserService = {
-  async get(uid: string): Promise<UserDoc | null> {
+  async get(uid: string): Promise<UserProfile | null> {
     const snap = await getDoc(doc(db, 'users', uid));
-    return snap.exists() ? (snap.data() as UserDoc) : null;
+    return snap.exists() ? (snap.data() as UserProfile) : null;
   },
 
-  async create(uid: string, data: Partial<UserDoc>) {
+  async create(uid: string, data: Partial<UserProfile>) {
     return setDoc(doc(db, 'users', uid), {
       uid,
+      displayName: '',
+      email: '',
+      photoURL: '',
+      phone: '',
+      city: '',
+      birthDate: '',
+      profileCompleted: false,
+      status: 'active',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
-      status: 'active',
-      profileCompleted: false,
       ...data,
     });
   },
 
-  async update(uid: string, data: Partial<UserDoc>) {
+  async update(uid: string, data: Record<string, any>) {
     return updateDoc(doc(db, 'users', uid), {
       ...data,
       updatedAt: serverTimestamp(),
@@ -70,25 +50,25 @@ export const UserService = {
     });
   },
 
-  async ensureDocument(uid: string, defaults: Partial<UserDoc>): Promise<UserDoc['role']> {
+  async ensureDocument(uid: string, defaults: Partial<UserProfile>): Promise<UserProfile['role']> {
     const existing = await this.get(uid);
     if (existing) {
       await this.touchLogin(uid);
       return existing.role || 'teen';
     }
     await this.create(uid, defaults);
-    return (defaults.role as UserDoc['role']) || 'teen';
+    return defaults.role || 'teen';
   },
 
-  onSnapshot(uid: string, callback: (data: UserDoc | null) => void): Unsubscribe {
+  onSnapshot(uid: string, callback: (data: UserProfile | null) => void): Unsubscribe {
     return onSnapshot(doc(db, 'users', uid), (snap) => {
-      callback(snap.exists() ? (snap.data() as UserDoc) : null);
+      callback(snap.exists() ? (snap.data() as UserProfile) : null);
     });
   },
 
-  async listByRole(role: 'teen' | 'employer' | 'admin'): Promise<UserDoc[]> {
+  async listByRole(role: UserProfile['role']): Promise<UserProfile[]> {
     const snap = await getDocs(query(collection(db, 'users'), where('role', '==', role)));
-    return snap.docs.map(d => d.data() as UserDoc);
+    return snap.docs.map(d => d.data() as UserProfile);
   },
 
   async uploadProfileImage(uid: string, file: File, role: 'teen' | 'employer'): Promise<string> {
@@ -97,7 +77,7 @@ export const UserService = {
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
     const field = role === 'employer' ? 'companyLogoUrl' : 'profileImageUrl';
-    await this.update(uid, { [field]: url } as any);
+    await this.update(uid, { [field]: url });
     return url;
   },
 
@@ -105,7 +85,7 @@ export const UserService = {
     const storageRef = ref(storage, `cvs/${uid}/${file.name}`);
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
-    await this.update(uid, { cvUrl: url, cvFileName: file.name } as any);
+    await this.update(uid, { cvUrl: url, cvFileName: file.name });
     return { url, fileName: file.name };
   },
 };

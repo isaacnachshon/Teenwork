@@ -1,6 +1,5 @@
 export { AuthService } from './AuthService';
 export { UserService } from './UserService';
-export type { UserDoc } from './UserService';
 export { JobService } from './JobService';
 export type { JobDoc } from './JobService';
 export { ApplicationService } from './ApplicationService';
