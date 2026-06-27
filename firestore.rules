@@ -2,17 +2,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // פונקציה שבודקת אם המשתמש הנוכחי הוא מנהל
-    function isAdmin() {
-      // !!! הדבק כאן את ה-UID שהעתקת מה-Authentication !!!
-      return request.auth.uid == 'mCQUl4hMRoeDnIeuvOEJf791ZdA3';
+    function isLoggedIn() {
+      return request.auth != null;
     }
 
-    // חוקים עבור קולקציית המשתמשים
+    function isAdmin() {
+      return isLoggedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     match /users/{userId} {
-      // למנהל מותר לקרוא ולכתוב את כל המידע של כל המשתמשים.
-      // משתמש רגיל יכול לקרוא ולכתוב רק את המידע של עצמו.
-      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && request.auth.uid == userId;
+      allow update: if isAdmin() || (isLoggedIn() && request.auth.uid == userId);
+      allow delete: if isAdmin();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() &&
+        request.resource.data.employerId == request.auth.uid;
+      allow update: if isAdmin() ||
+        (isLoggedIn() && resource.data.employerId == request.auth.uid);
+      allow delete: if isAdmin() ||
+        (isLoggedIn() && resource.data.employerId == request.auth.uid);
+    }
+
+    match /applications/{appId} {
+      allow read: if isAdmin()
+        || (isLoggedIn() && resource.data.applicantId == request.auth.uid)
+        || (isLoggedIn() && resource.data.employerId == request.auth.uid);
+      allow create: if isLoggedIn() &&
+        request.resource.data.applicantId == request.auth.uid;
+      allow update: if isAdmin() ||
+        (isLoggedIn() && resource.data.employerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{msgId} {
+      allow read, write: if isLoggedIn() &&
+        (resource == null || resource.data.senderId == request.auth.uid ||
+         resource.data.recipientId == request.auth.uid);
+    }
+
+    match /notifications/{notifId} {
+      allow read: if isLoggedIn() &&
+        resource.data.userId == request.auth.uid;
+      allow create: if isLoggedIn();
+      allow update, delete: if isAdmin() ||
+        (isLoggedIn() && resource.data.userId == request.auth.uid);
     }
   }
 }
