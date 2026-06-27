@@ -11,13 +11,47 @@ import EmailVerificationPage from './components/EmailVerificationPage';
 
 import { auth, db, getFirebaseInitError } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 
 type Role = 'landing' | 'about' | 'teen' | 'employer' | 'admin';
 
 type CurrentUser = {
   firebaseUser: User;
   role: Exclude<Role, 'landing' | 'about'>;
+};
+
+const ensureUserDocument = async (user: User): Promise<Exclude<Role, 'landing' | 'about'>> => {
+  const userDocRef = doc(db, 'users', user.uid);
+  const userDoc = await getDoc(userDocRef);
+
+  if (userDoc.exists()) {
+    const data = userDoc.data();
+    await setDoc(userDocRef, {
+      lastLogin: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return (data.role as Exclude<Role, 'landing' | 'about'>) || 'teen';
+  }
+
+  const defaultName = user.displayName || user.email?.split('@')[0] || 'משתמש';
+  await setDoc(userDocRef, {
+    uid: user.uid,
+    displayName: defaultName,
+    name: defaultName,
+    email: user.email || '',
+    photoURL: user.photoURL || '',
+    role: 'teen',
+    phone: '',
+    city: '',
+    birthDate: '',
+    profileCompleted: false,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastLogin: serverTimestamp(),
+    status: 'active',
+  });
+
+  return 'teen';
 };
 
 const App: React.FC = () => {
@@ -46,57 +80,53 @@ const App: React.FC = () => {
       }
 
       if (user) {
-        // User is signed in. Listen to their Firestore document to determine role.
-        // Using onSnapshot allows us to handle the case where the user is created (auth)
-        // but the Firestore document is still being written (race condition during signup).
-        const userDocRef = doc(db, 'users', user.uid);
+        const handleUserDocument = async () => {
+          try {
+            const role = await ensureUserDocument(user);
 
-        unsubscribeDoc = onSnapshot(userDocRef, (docSnap) => {
-          let role: Exclude<Role, 'landing'> | null = null;
+            const userDocRef = doc(db, 'users', user.uid);
+            unsubscribeDoc = onSnapshot(userDocRef, (docSnap) => {
+              let resolvedRole: Exclude<Role, 'landing'> | null = null;
 
-          if (docSnap.exists()) {
-            const userData = docSnap.data();
-            role = userData.role as Exclude<Role, 'landing'>;
-          }
-
-          if (role) {
-            // Verification logic for teens
-            if (role === 'teen' && !user.emailVerified) {
-              // Logic for unverified email...
-              const creationTime = new Date(user.metadata.creationTime!).getTime();
-              const now = new Date().getTime();
-              const hoursSinceCreation = (now - creationTime) / (1000 * 60 * 60);
-
-              if (hoursSinceCreation > 24) {
-                alert('Your registration expired because your email was not verified within 24 hours. Please sign up again.');
-                signOut(auth);
-                setLoading(false);
-                return;
+              if (docSnap.exists()) {
+                const userData = docSnap.data();
+                resolvedRole = userData.role as Exclude<Role, 'landing'>;
               }
-            }
 
-            setCurrentUser({ firebaseUser: user, role });
-            setView(role);
+              if (resolvedRole) {
+                if (resolvedRole === 'teen' && !user.emailVerified) {
+                  const creationTime = new Date(user.metadata.creationTime!).getTime();
+                  const now = new Date().getTime();
+                  const hoursSinceCreation = (now - creationTime) / (1000 * 60 * 60);
+
+                  if (hoursSinceCreation > 24) {
+                    alert('Your registration expired because your email was not verified within 24 hours. Please sign up again.');
+                    signOut(auth);
+                    setLoading(false);
+                    return;
+                  }
+                }
+
+                setCurrentUser({ firebaseUser: user, role: resolvedRole });
+                setView(resolvedRole);
+                setLoading(false);
+              }
+            }, (error) => {
+              console.error('Error listening to user doc:', error);
+              setLoading(false);
+            });
+          } catch (error) {
+            console.error('Failed to ensure user document:', error);
             setLoading(false);
-          } else {
-            // Document doesn't exist yet (or deleted). 
-            // DO NOT sign out immediately, as it might be a new user signup in progress.
-            // We keep 'loading' true or allow the UI to handle the waiting state.
-            // Optionally, we could set a timeout here if we wanted to enforce strictly, 
-            // but relying on the snapshot update is cleaner for the happy path.
-            // Profile doc may not exist yet — the onSnapshot listener will fire again when it's created.
           }
-        }, (error) => {
-          console.error("Error listening to user doc:", error);
-          setLoading(false);
-        });
+        };
+
+        void handleUserDocument();
 
       } else {
-        // User is signed out
         setCurrentUser(null);
+        setView('landing');
         setLoading(false);
-        // If we were on a protected route, we might want to redirect, 
-        // but 'view' state management handles rendering.
       }
     });
 
@@ -138,17 +168,17 @@ const App: React.FC = () => {
             return <EmailVerificationPage user={currentUser.firebaseUser} />;
           }
         }
-        return <TeenLoginPage />;
+        return <TeenLoginPage onBack={() => setView('landing')} />;
 
       case 'employer':
         return currentUser?.role === 'employer'
           ? <DashboardLayout role="employer" userName={getUserName()} onLogout={handleLogout} />
-          : <EmployerLoginPage />;
+          : <EmployerLoginPage onBack={() => setView('landing')} />;
 
       case 'admin':
         return currentUser?.role === 'admin'
           ? <DashboardLayout role="admin" userName={getUserName()} onLogout={handleLogout} />
-          : <LoginPage />;
+          : <LoginPage onBack={() => setView('landing')} />;
 
       default:
         return <LandingPage onRoleSelect={handleRoleChange} />;

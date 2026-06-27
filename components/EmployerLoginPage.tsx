@@ -12,7 +12,11 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
-const EmployerLoginPage: React.FC = () => {
+interface EmployerLoginPageProps {
+    onBack?: () => void;
+}
+
+const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
     const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -280,6 +284,16 @@ const EmployerLoginPage: React.FC = () => {
                         {authMode === 'login' ? 'הרשם כאן' : 'התחבר'}
                     </button>
                 </p>
+                <p className="text-center text-sm text-gray-500">
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 underline">
+                        מדיניות פרטיות
+                    </a>
+                </p>
+                {onBack && (
+                    <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-blue-600 transition-colors mt-2">
+                        ← חזרה לדף הראשי
+                    </button>
+                )}
             </div>
         </div>
     );

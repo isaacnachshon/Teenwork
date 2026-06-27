@@ -13,7 +13,11 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
-const TeenLoginPage: React.FC = () => {
+interface TeenLoginPageProps {
+    onBack?: () => void;
+}
+
+const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
     const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -284,6 +288,16 @@ const TeenLoginPage: React.FC = () => {
                         {authMode === 'login' ? 'הרשם כאן' : 'התחבר'}
                     </button>
                 </p>
+                <p className="text-center text-sm text-gray-500">
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 underline">
+                        מדיניות פרטיות
+                    </a>
+                </p>
+                {onBack && (
+                    <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-purple-600 transition-colors mt-2">
+                        ← חזרה לדף הראשי
+                    </button>
+                )}
             </div>
         </div>
     );

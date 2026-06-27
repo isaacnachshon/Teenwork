@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { DIcon } from './DashboardIcons';
-import { DashRole, TabKey, avatarGrad, initial, DEMO_CONNECTIONS } from './types';
+import { DashRole, TabKey, avatarGrad, initial } from './types';
 import OverviewPage from './OverviewPage';
 import ConnectionsPage from './ConnectionsPage';
 import UsersPage from './UsersPage';
 import ChatPage from './ChatPage';
+import ProfileTab from './ProfileTab';
+import SettingsPage from './SettingsPage';
 import { auth, db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -21,9 +23,9 @@ const ROLE_LABEL: Record<DashRole, string> = {
 };
 
 const NAV: Record<DashRole, [TabKey, string, string][]> = {
-  admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat']],
-  employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat']],
-  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat']],
+  admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat'], ['settings', 'הגדרות', 'gear']],
+  employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
+  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
 };
 
 const SEARCH_PH: Record<DashRole, string> = {
@@ -48,9 +50,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
     }).catch(() => {});
   }, [fallbackName]);
 
-  const pendingCount = DEMO_CONNECTIONS.filter(c => c.status === 'pending').length;
-  const unreadCount = 3;
-  const badges: Partial<Record<TabKey, number>> = { connections: pendingCount, chat: unreadCount };
+  const badges: Partial<Record<TabKey, number>> = {};
 
   const av = avatarGrad(userName);
   const ini = initial(userName);
@@ -61,6 +61,8 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
       case 'users': return <UsersPage />;
       case 'connections': return <ConnectionsPage role={role} />;
       case 'chat': return <ChatPage role={role} />;
+      case 'profile': return <ProfileTab role={role} />;
+      case 'settings': return <SettingsPage role={role} onLogout={onLogout} />;
     }
   };
 
