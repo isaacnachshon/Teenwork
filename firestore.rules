@@ -6,72 +6,79 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isAdmin() {
-      return isLoggedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isLoggedIn() && getUserRole() == 'admin';
+    }
+
+    function isEmployer() {
+      return isLoggedIn() && getUserRole() == 'employer';
+    }
+
+    function isTeen() {
+      return isLoggedIn() && getUserRole() == 'teen';
+    }
+
+    function isOwnUser(userId) {
+      return isLoggedIn() && request.auth.uid == userId;
     }
 
     match /users/{userId} {
-      function isConsentStatusSafe() {
-        return !('parentalConsentStatus' in request.resource.data)
-          || request.resource.data.parentalConsentStatus == resource.data.parentalConsentStatus
-          || isAdmin();
-      }
+      allow read: if isLoggedIn() && (isAdmin() || isOwnUser(userId));
+      allow create: if isOwnUser(userId);
+      allow update: if isAdmin() || isOwnUser(userId);
+      allow delete: if isAdmin();
+    }
 
-      function isConsentReviewSafe() {
-        return !('parentalConsentReviewedAt' in request.resource.data)
-          || request.resource.data.parentalConsentReviewedAt == resource.data.parentalConsentReviewedAt
-          || isAdmin();
-      }
-
-      function isConsentReviewerSafe() {
-        return !('parentalConsentReviewer' in request.resource.data)
-          || request.resource.data.parentalConsentReviewer == resource.data.parentalConsentReviewer
-          || isAdmin();
-      }
-
+    match /companies/{companyId} {
       allow read: if isLoggedIn();
-      allow create: if isLoggedIn() && request.auth.uid == userId;
-      allow update: if (isAdmin() || (isLoggedIn() && request.auth.uid == userId))
-        && isConsentStatusSafe()
-        && isConsentReviewSafe()
-        && isConsentReviewerSafe();
+      allow create: if isEmployer() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAdmin() || (isEmployer() && resource.data.ownerId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     match /jobs/{jobId} {
       allow read: if isLoggedIn();
-      allow create: if isLoggedIn() &&
-        request.resource.data.employerId == request.auth.uid;
-      allow update: if isAdmin() ||
-        (isLoggedIn() && resource.data.employerId == request.auth.uid);
-      allow delete: if isAdmin() ||
-        (isLoggedIn() && resource.data.employerId == request.auth.uid);
+      allow create: if isEmployer() && request.resource.data.employerId == request.auth.uid;
+      allow update: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
+      allow delete: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
     }
 
     match /applications/{appId} {
       allow read: if isAdmin()
-        || (isLoggedIn() && resource.data.applicantId == request.auth.uid)
-        || (isLoggedIn() && resource.data.employerId == request.auth.uid);
-      allow create: if isLoggedIn() &&
-        request.resource.data.applicantId == request.auth.uid;
-      allow update: if isAdmin() ||
-        (isLoggedIn() && resource.data.employerId == request.auth.uid);
+        || (isTeen() && resource.data.applicantId == request.auth.uid)
+        || (isEmployer() && resource.data.employerId == request.auth.uid);
+      allow create: if isTeen() && request.resource.data.applicantId == request.auth.uid;
+      allow update: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
-    match /messages/{msgId} {
-      allow read, write: if isLoggedIn() &&
-        (resource == null || resource.data.senderId == request.auth.uid ||
-         resource.data.recipientId == request.auth.uid);
+    match /messages/{messageId} {
+      allow read: if isLoggedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow create: if isLoggedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isAdmin() || (isLoggedIn() && resource.data.senderId == request.auth.uid);
+      allow delete: if isAdmin() || (isLoggedIn() && resource.data.senderId == request.auth.uid);
     }
 
-    match /notifications/{notifId} {
-      allow read: if isLoggedIn() &&
-        resource.data.userId == request.auth.uid;
+    match /notifications/{notificationId} {
+      allow read: if isLoggedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isAdmin() || (isLoggedIn() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() || (isLoggedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAdmin();
       allow create: if isLoggedIn();
-      allow update, delete: if isAdmin() ||
-        (isLoggedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
     }
   }
 }
