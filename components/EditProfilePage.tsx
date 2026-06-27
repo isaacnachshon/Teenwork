@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { MapPinIcon, PencilIcon, XIcon, PlusCircleIcon, UploadIcon, FileTextIcon, CheckCircleIcon } from './icons';
 import type { UserProfile, Job } from '../types';
-import { storage } from '../firebase';
+import { storage, auth } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface EditProfilePageProps {
@@ -62,14 +62,9 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
             const file = e.target.files[0];
             setUploadingConsent(true);
             try {
-                // Create a unique path for the user's consent form
-                // Assuming we have user ID in profile or auth, but here we might rely on unique filename or structure
-                // Ideally we'd use `auth.currentUser.uid` but it's not directly in props. 
-                // Let's use a timestamp + random string or just rely on the fact that EditProfilePage 
-                // is usually used by the logged in user.
-                // Better yet, let's put it in a folder 'parental_consents'
-
-                const storageRef = ref(storage, `parental_consents/${Date.now()}_${file.name}`);
+                const user = auth.currentUser;
+                if (!user) return;
+                const storageRef = ref(storage, `parental_consents/${user.uid}/${file.name}`);
                 await uploadBytes(storageRef, file);
                 const downloadURL = await getDownloadURL(storageRef);
 
