@@ -7,6 +7,7 @@ import UsersPage from '@/pages/dashboard/UsersPage';
 import ChatPage from '@/pages/dashboard/ChatPage';
 import ProfileTab from '@/pages/dashboard/ProfileTab';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
+import RightsInfoModal from '@/components/RightsInfoModal';
 import { auth, db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -37,6 +38,7 @@ const SEARCH_PH: Record<DashRole, string> = {
 const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogout }) => {
   const [tab, setTab] = useState<TabKey>('overview');
   const [userName, setUserName] = useState(fallbackName);
+  const [showRightsModal, setShowRightsModal] = useState(false);
 
   useEffect(() => {
     const uid = auth?.currentUser?.uid;
@@ -88,6 +90,12 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
             );
           })}
         </nav>
+        {role === 'teen' && (
+          <button onClick={() => setShowRightsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', border: '1px solid #E8DAF8', cursor: 'pointer', textAlign: 'right', padding: '11px 12px', borderRadius: 11, fontFamily: 'inherit', fontSize: 15, background: '#FAF5FF', color: '#7B2FF6', fontWeight: 700, marginTop: 12, transition: 'background .14s' }}>
+            <span style={{ display: 'flex' }}>{DIcon('scale', { size: 19, color: '#7B2FF6' })}</span>
+            <span style={{ flex: 1 }}>זכויות נוער</span>
+          </button>
+        )}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 13, background: '#F7F8FA' }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: av, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>{ini}</div>
@@ -121,6 +129,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
         {/* Content */}
         {renderContent()}
       </main>
+      {role === 'teen' && <RightsInfoModal isOpen={showRightsModal} onClose={() => setShowRightsModal(false)} />}
     </div>
   );
 };

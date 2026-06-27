@@ -75,7 +75,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
       const apps: AppRecord[] = [];
 
       for (const d of snap.docs) {
-        const data = d.data();
+        const data = d.data() as Record<string, any>;
         const rawStatus = data.status || 'new';
         const status = STATUS_MAP[rawStatus] || 'pending';
 

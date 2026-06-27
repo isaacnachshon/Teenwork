@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Job, UserProfile } from '@/types';
+import type { Job, TeenProfile } from '@/types';
 import { MapPinIcon, DollarSignIcon, SearchIcon, BellIcon, MenuIcon, XIcon, UserIcon, BriefcaseIcon, UsersIcon, HomeIcon, ScaleIcon } from '@/components/icons';
 import RightsInfoModal from '@/components/RightsInfoModal';
 import ProfilePage from '@/pages/profile/ProfilePage';
@@ -35,7 +35,17 @@ const stories = [
   { id: '6', name: 'דנה', img: 'https://picsum.photos/id/1029/100/100' },
 ];
 
-const initialUserProfile: UserProfile = {
+const initialTeenProfile: TeenProfile = {
+  uid: '',
+  displayName: 'אור כהן',
+  email: '',
+  photoURL: '',
+  role: 'teen',
+  profileCompleted: false,
+  createdAt: null as any,
+  updatedAt: null as any,
+  lastLogin: null as any,
+  status: 'active',
   name: 'אור כהן',
   age: 17,
   birthDate: '2008-07-12',
@@ -135,7 +145,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
     setActiveView(view);
   };
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile>(initialUserProfile);
+  const [userProfile, setTeenProfile] = useState<TeenProfile>(initialTeenProfile);
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -185,7 +195,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
 
   // Fetch user profile from Firestore
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchTeenProfile = async () => {
       const user = auth.currentUser;
       if (!user) {
         console.error('No authenticated user found');
@@ -199,7 +209,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setUserProfile({
+          setTeenProfile({
             name: userData.name || 'משתמש',
             age: userData.age || 16,
             birthDate: userData.birthDate || '',
@@ -241,7 +251,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
       }
     };
 
-    fetchUserProfile();
+    fetchTeenProfile();
   }, []);
 
   // Get user location
@@ -270,7 +280,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
     setActiveView('jobDetail');
   };
 
-  const handleProfileSave = async (updatedProfile: UserProfile) => {
+  const handleProfileSave = async (updatedProfile: TeenProfile) => {
     const user = auth.currentUser;
     if (!user) {
       console.error('No authenticated user found');
@@ -317,7 +327,7 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
         email: user.email,
       }, { merge: true });
 
-      setUserProfile(updatedProfile);
+      setTeenProfile(updatedProfile);
       navigateTo('profile');
     } catch (error) {
       console.error('Error saving teen profile:', error);

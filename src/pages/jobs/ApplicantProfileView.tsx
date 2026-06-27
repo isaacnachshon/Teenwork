@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { UserProfile } from '@/types';
+import type { TeenProfile } from '@/types';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { MapPinIcon, StarIcon, ChevronLeftIcon } from '@/components/icons';
@@ -10,7 +10,7 @@ interface ApplicantProfileViewProps {
 }
 
 const ApplicantProfileView: React.FC<ApplicantProfileViewProps> = ({ applicantId, onBack }) => {
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [profile, setProfile] = useState<TeenProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

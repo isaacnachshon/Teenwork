@@ -54,8 +54,8 @@ const ChatPage: React.FC<Props> = ({ role }) => {
       );
     }
 
-    const unsub = onSnapshot(q, (snap) => {
-      const allMsgs: ChatMessage[] = snap.docs.map(d => {
+    const unsub = onSnapshot(q, (snap: any) => {
+      const allMsgs: ChatMessage[] = snap.docs.map((d: any) => {
         const data = d.data();
         return {
           id: d.id,

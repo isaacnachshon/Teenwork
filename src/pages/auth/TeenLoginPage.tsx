@@ -35,6 +35,7 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [parentEmail, setParentEmail] = useState('');
     const [parentPhone, setParentPhone] = useState('');
+    const [showParentFields, setShowParentFields] = useState(false);
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
     const [resetSuccess, setResetSuccess] = useState('');
@@ -87,8 +88,8 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!fullName.trim() || !email.trim() || !password.trim() || !parentEmail.trim() || !parentPhone.trim()) {
-            setError('נא למלא את כל השדות, כולל פרטי הורה.');
+        if (!fullName.trim() || !email.trim() || !password.trim()) {
+            setError('נא למלא את כל השדות.');
             return;
         }
         if (password.length < MIN_PASSWORD_LENGTH) {
@@ -119,7 +120,7 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             }
 
             try {
-                await setDoc(doc(db, 'users', user.uid), {
+                const userDocData: Record<string, any> = {
                     uid: user.uid,
                     displayName: fullName,
                     name: fullName,
@@ -132,26 +133,32 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                     profileCompleted: false,
                     status: 'active',
                     profileImageUrl,
-                    parentEmail,
-                    parentPhone,
-                    parentalConsentStatus: 'pending',
                     skills: [],
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     lastLogin: serverTimestamp(),
-                });
+                };
 
-                const approvalRef = doc(collection(db, 'parentalApprovals'));
-                await setDoc(approvalRef, {
-                    token: approvalRef.id,
-                    teenUid: user.uid,
-                    teenName: fullName,
-                    teenEmail: user.email,
-                    parentEmail,
-                    parentPhone,
-                    status: 'pending',
-                    createdAt: serverTimestamp(),
-                });
+                if (parentEmail.trim()) userDocData.parentEmail = parentEmail;
+                if (parentPhone.trim()) userDocData.parentPhone = parentPhone;
+
+                await setDoc(doc(db, 'users', user.uid), userDocData);
+
+                if (parentEmail.trim() && parentPhone.trim()) {
+                    const approvalRef = doc(collection(db, 'parentalApprovals'));
+                    await setDoc(approvalRef, {
+                        token: approvalRef.id,
+                        teenUid: user.uid,
+                        teenName: fullName,
+                        teenEmail: user.email,
+                        parentEmail,
+                        parentPhone,
+                        status: 'pending',
+                        createdAt: serverTimestamp(),
+                    });
+                    userDocData.parentalConsentStatus = 'pending';
+                    await setDoc(doc(db, 'users', user.uid), { parentalConsentStatus: 'pending' }, { merge: true });
+                }
             } catch (firestoreErr) {
                 if (profileImageUrl) {
                     try { await deleteObject(ref(storage, `profileImages/teens/${user.uid}`)); } catch (_) {}
@@ -321,17 +328,27 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                             <input id="confirmPassword" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="********" />
                         </div>
                         <div className="border-t border-gray-200 pt-4 mt-2">
-                            <p className="text-sm font-medium text-gray-700 mb-3 text-center">פרטי הורה / אפוטרופוס</p>
-                            <div className="space-y-3">
-                                <div>
-                                    <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700">אימייל הורה</label>
-                                    <input id="parentEmail" name="parentEmail" type="email" required value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="parent@email.com" />
+                            <button
+                                type="button"
+                                onClick={() => setShowParentFields(!showParentFields)}
+                                className="w-full text-sm font-medium text-gray-700 text-center hover:text-purple-600 transition-colors flex items-center justify-center gap-1"
+                            >
+                                <span>פרטי הורה / אפוטרופוס (אופציונלי)</span>
+                                <span className="text-xs">{showParentFields ? '▲' : '▼'}</span>
+                            </button>
+                            <p className="text-xs text-gray-400 text-center mt-1">ניתן להוסיף גם מאוחר יותר דרך הפרופיל</p>
+                            {showParentFields && (
+                                <div className="space-y-3 mt-3">
+                                    <div>
+                                        <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700">אימייל הורה</label>
+                                        <input id="parentEmail" name="parentEmail" type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="parent@email.com" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">טלפון הורה</label>
+                                        <input id="parentPhone" name="parentPhone" type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="05X-XXXXXXX" dir="ltr" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">טלפון הורה</label>
-                                    <input id="parentPhone" name="parentPhone" type="tel" required value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="05X-XXXXXXX" dir="ltr" />
-                                </div>
-                            </div>
+                            )}
                         </div>
                         {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
                         <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">

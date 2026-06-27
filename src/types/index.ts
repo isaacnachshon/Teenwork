@@ -21,11 +21,16 @@ export interface UserProfile {
 export interface TeenProfile extends UserProfile {
   role: 'teen';
   name: string;
+  age?: number;
+  idNumber?: string;
+  location?: string;
+  address?: string;
   school?: string;
+  studyStatus?: string;
   bio?: string;
   skills: string[];
   availability?: string[];
-  profileImageUrl?: string;
+  profileImageUrl: string;
   cvUrl?: string;
   cvFileName?: string;
   preferredJobTypes?: JobType[];
@@ -34,11 +39,17 @@ export interface TeenProfile extends UserProfile {
   parentPhone?: string;
   parentEmail?: string;
   parentRelation?: string;
+  parentAddress?: string;
   parentalConsentUrl?: string;
   parentalConsentStatus?: 'pending' | 'approved' | 'rejected';
+  parentalConsentUploadedAt?: string;
+  parentalConsentReviewedAt?: string;
+  parentalConsentReviewer?: string;
+  paymentInfo?: string;
   bankName?: string;
   bankBranch?: string;
   bankAccountNumber?: string;
+  bankId?: string;
   workHistory?: WorkHistoryItem[];
   reviews?: ReviewItem[];
 }

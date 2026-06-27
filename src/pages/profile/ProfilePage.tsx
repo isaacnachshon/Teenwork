@@ -1,13 +1,87 @@
-import React from 'react';
-import { MapPinIcon, PencilIcon, StarIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons';
-import type { UserProfile } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { MapPinIcon, PencilIcon, StarIcon, CheckCircleIcon, FileTextIcon, ClockIcon } from '@/components/icons';
+import type { TeenProfile } from '@/types';
+import { auth, db } from '@/firebase';
+import { doc, setDoc, collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 interface ProfilePageProps {
-    userProfile: UserProfile;
+    userProfile: TeenProfile;
     onEdit: () => void;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onEdit }) => {
+    const [approvalLink, setApprovalLink] = useState('');
+    const [approvalStatus, setApprovalStatus] = useState<string | undefined>(userProfile.parentalConsentStatus);
+    const [copied, setCopied] = useState(false);
+    const [sendingRequest, setSendingRequest] = useState(false);
+
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const q = query(
+            collection(db, 'parentalApprovals'),
+            where('teenUid', '==', user.uid)
+        );
+
+        const unsub = onSnapshot(q, (snapshot) => {
+            for (const docSnap of snapshot.docs) {
+                const data = docSnap.data();
+                setApprovalStatus(data.status);
+                if (data.status === 'pending') {
+                    const baseUrl = window.location.origin;
+                    setApprovalLink(`${baseUrl}?approve=${data.token}`);
+                }
+            }
+        });
+
+        return unsub;
+    }, []);
+
+    const handleSendApprovalRequest = async () => {
+        const user = auth.currentUser;
+        if (!user || !userProfile.parentEmail || !userProfile.parentPhone) return;
+
+        setSendingRequest(true);
+        try {
+            const approvalRef = doc(collection(db, 'parentalApprovals'));
+            await setDoc(approvalRef, {
+                token: approvalRef.id,
+                teenUid: user.uid,
+                teenName: userProfile.name || userProfile.displayName || '',
+                teenEmail: user.email,
+                parentEmail: userProfile.parentEmail,
+                parentPhone: userProfile.parentPhone,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            });
+
+            await setDoc(doc(db, 'users', user.uid), {
+                parentalConsentStatus: 'pending',
+            }, { merge: true });
+
+            setApprovalStatus('pending');
+        } catch (err) {
+            console.error('Error sending approval request:', err);
+            alert('שגיאה בשליחת בקשת האישור. נסה שוב.');
+        } finally {
+            setSendingRequest(false);
+        }
+    };
+
+    const handleCopyLink = async () => {
+        if (!approvalLink) return;
+        await navigator.clipboard.writeText(approvalLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleWhatsApp = () => {
+        if (!approvalLink) return;
+        const text = encodeURIComponent(`שלום, נרשמתי לפלטפורמת TeenWork ואני צריך את אישורך כהורה. אנא לחץ/י על הקישור הבא:\n${approvalLink}`);
+        window.open(`https://wa.me/?text=${text}`, '_blank');
+    };
+
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in-0 duration-500">
             {/* Profile Header */}
@@ -101,22 +175,98 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onEdit }) => {
                 </button>
             </header>
 
-            {/* Parental Consent Status Banner */}
-            {userProfile.parentalConsentUrl ? (
+            {/* Parental Consent Section */}
+            {approvalStatus === 'approved' ? (
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 flex items-center gap-3 animate-in fade-in-0 duration-500">
                     <CheckCircleIcon className="w-6 h-6 text-green-600" />
                     <div>
-                        <h3 className="font-bold text-green-800">אישור הורים קיים</h3>
-                        <p className="text-sm text-green-700">המשתמש העלה אישור הורים חתום. <a href={userProfile.parentalConsentUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-900">צפה בקובץ</a></p>
+                        <h3 className="font-bold text-green-800">אישור הורים התקבל</h3>
+                        <p className="text-sm text-green-700">ההורה/אפוטרופוס אישר את ההרשמה שלך לפלטפורמה.</p>
                     </div>
                 </div>
-            ) : (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 flex items-center gap-3 animate-in fade-in-0 duration-500">
-                    <FileTextIcon className="w-6 h-6 text-yellow-600" />
+            ) : approvalStatus === 'rejected' ? (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8 flex items-center gap-3 animate-in fade-in-0 duration-500">
+                    <FileTextIcon className="w-6 h-6 text-red-600" />
                     <div>
-                        <h3 className="font-bold text-yellow-800">חסר אישור הורים</h3>
-                        <p className="text-sm text-yellow-700">טרם הועלה אישור הורים. <button onClick={onEdit} className="underline hover:text-yellow-900">לחץ לעריכה והעלאה</button></p>
+                        <h3 className="font-bold text-red-800">בקשת האישור נדחתה</h3>
+                        <p className="text-sm text-red-700">ההורה/אפוטרופוס דחה את הבקשה. ניתן לפנות להורה ולשלוח בקשה חדשה.</p>
+                        {userProfile.parentEmail && userProfile.parentPhone && (
+                            <button
+                                onClick={handleSendApprovalRequest}
+                                disabled={sendingRequest}
+                                className="mt-2 text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                            >
+                                {sendingRequest ? 'שולח...' : 'שלח בקשה חדשה'}
+                            </button>
+                        )}
                     </div>
+                </div>
+            ) : approvalStatus === 'pending' ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-8 animate-in fade-in-0 duration-500">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="animate-pulse">
+                            <ClockIcon className="w-6 h-6 text-yellow-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-yellow-800">ממתין לאישור הורים</h3>
+                            <p className="text-sm text-yellow-700">נשלחה בקשת אישור להורה/אפוטרופוס. הדף יתעדכן אוטומטית.</p>
+                        </div>
+                    </div>
+                    {approvalLink && (
+                        <div className="space-y-3 pt-3 border-t border-yellow-200">
+                            <p className="text-sm font-medium text-gray-700">שתף/י את הקישור עם ההורה:</p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={approvalLink}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-600"
+                                    dir="ltr"
+                                />
+                                <button
+                                    onClick={handleCopyLink}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors whitespace-nowrap"
+                                >
+                                    {copied ? 'הועתק!' : 'העתק'}
+                                </button>
+                            </div>
+                            <button
+                                onClick={handleWhatsApp}
+                                className="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                            >
+                                שלח בוואטסאפ
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-8 animate-in fade-in-0 duration-500">
+                    <div className="flex items-center gap-3 mb-3">
+                        <FileTextIcon className="w-6 h-6 text-blue-600" />
+                        <div>
+                            <h3 className="font-bold text-blue-800">אישור הורים</h3>
+                            <p className="text-sm text-blue-700">בני נוער צריכים אישור הורים כדי להגיש מועמדות למשרות.</p>
+                        </div>
+                    </div>
+                    {userProfile.parentEmail && userProfile.parentPhone ? (
+                        <button
+                            onClick={handleSendApprovalRequest}
+                            disabled={sendingRequest}
+                            className="mt-2 w-full py-3 px-4 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                            {sendingRequest ? 'שולח בקשה...' : 'שלח בקשת אישור להורה'}
+                        </button>
+                    ) : (
+                        <div className="mt-2">
+                            <p className="text-sm text-gray-600 mb-2">יש למלא פרטי הורה בפרופיל לפני שליחת בקשת אישור.</p>
+                            <button
+                                onClick={onEdit}
+                                className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                            >
+                                עריכת פרופיל — הוספת פרטי הורה
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

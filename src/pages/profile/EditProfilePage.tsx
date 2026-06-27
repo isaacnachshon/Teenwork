@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { MapPinIcon, PencilIcon, XIcon, PlusCircleIcon, UploadIcon, FileTextIcon, CheckCircleIcon } from '@/components/icons';
-import type { UserProfile, Job } from '@/types';
+import type { TeenProfile, Job } from '@/types';
 import { storage, auth } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface EditProfilePageProps {
-    userProfile: UserProfile;
-    onSave: (updatedProfile: UserProfile) => void;
+    userProfile: TeenProfile;
+    onSave: (updatedProfile: TeenProfile) => void;
     onCancel: () => void;
 }
 
@@ -32,7 +32,7 @@ const COMMON_SKILLS = [
 ];
 
 const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<UserProfile>({
+    const [formData, setFormData] = useState<TeenProfile>({
         ...userProfile,
         preferredJobTypes: userProfile.preferredJobTypes || [],
     });
@@ -160,7 +160,11 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                                 placeholder="הזן מיקום או לחץ על הכפתור"
                             />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    </div>
+                </header>
+
+                <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">טלפון</label>
                                 <input
@@ -218,6 +222,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                                 />
                             </div>
                         </div>
+                        <div className="flex justify-center mt-2">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -256,7 +261,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                                 <MapPinIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                             <div>
                                 <label htmlFor="address" className="block text-sm font-medium text-gray-700">כתובת מלאה</label>
                                 <input
@@ -340,7 +345,6 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                             </div>
                         </div>
                     </div>
-                </header>
 
                 <div className="space-y-8">
                     <div className="bg-white rounded-xl shadow-md p-6">
