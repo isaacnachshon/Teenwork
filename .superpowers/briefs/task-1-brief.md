@@ -1,3 +1,22 @@
+# Task 1: Fix Firestore Security Rules
+
+## Context
+TeenWork is a Firebase-backed React app (Israeli teen job marketplace). You are fixing the Firestore security rules file only — no React/TypeScript changes.
+
+## File to Modify
+`C:\Users\orina\TeenWork\teenwork\firestore.rules`
+
+## Current Problem
+The existing `firestore.rules` has a critical flaw: `isAdmin()` checks a hardcoded UID string (`mCQUl4hMRoeDnIeuvOEJf791ZdA3`) instead of reading the user's role from Firestore. Additionally:
+- `users` read is restricted to own doc only — must allow all authenticated users to read (employers browse teen profiles)
+- `jobs` create has no validation that `employerId == request.auth.uid`
+- `applications` create has no validation that `applicantId == request.auth.uid`
+- `messages`/`notifications` are fully open to any logged-in user
+
+## Required Result
+Replace the entire content of `firestore.rules` with exactly this:
+
+```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,30 +31,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      function isConsentStatusSafe() {
-        return !('parentalConsentStatus' in request.resource.data)
-          || request.resource.data.parentalConsentStatus == resource.data.parentalConsentStatus
-          || isAdmin();
-      }
-
-      function isConsentReviewSafe() {
-        return !('parentalConsentReviewedAt' in request.resource.data)
-          || request.resource.data.parentalConsentReviewedAt == resource.data.parentalConsentReviewedAt
-          || isAdmin();
-      }
-
-      function isConsentReviewerSafe() {
-        return !('parentalConsentReviewer' in request.resource.data)
-          || request.resource.data.parentalConsentReviewer == resource.data.parentalConsentReviewer
-          || isAdmin();
-      }
-
       allow read: if isLoggedIn();
       allow create: if isLoggedIn() && request.auth.uid == userId;
-      allow update: if (isAdmin() || (isLoggedIn() && request.auth.uid == userId))
-        && isConsentStatusSafe()
-        && isConsentReviewSafe()
-        && isConsentReviewerSafe();
+      allow update: if isAdmin() || (isLoggedIn() && request.auth.uid == userId);
       allow delete: if isAdmin();
     }
 
@@ -75,3 +73,19 @@ service cloud.firestore {
     }
   }
 }
+```
+
+## Steps
+1. Write the above content to `firestore.rules` (replace entirely)
+2. Deploy: `cd C:\Users\orina\TeenWork\teenwork && firebase deploy --only firestore:rules`
+3. Confirm deploy output shows success
+4. Commit: `git add firestore.rules && git commit -m "fix: replace hardcoded admin UID with Firestore role check in security rules"`
+
+## Report
+Write your report to: `C:\Users\orina\TeenWork\teenwork\.superpowers\briefs\task-1-report.md`
+
+Include:
+- Status: DONE / BLOCKED / NEEDS_CONTEXT
+- Commits made (full SHA)
+- Deploy output
+- Any concerns

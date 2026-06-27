@@ -68,7 +68,12 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                 await uploadBytes(storageRef, file);
                 const downloadURL = await getDownloadURL(storageRef);
 
-                setFormData(prev => ({ ...prev, parentalConsentUrl: downloadURL }));
+                setFormData(prev => ({
+                    ...prev,
+                    parentalConsentUrl: downloadURL,
+                    parentalConsentUploadedAt: new Date().toISOString(),
+                    parentalConsentStatus: 'pending',
+                }));
             } catch (error) {
                 console.error("Error uploading consent form:", error);
                 alert("שגיאה בהעלאת הקובץ. נסה שוב.");
@@ -154,6 +159,65 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                                 className="bg-transparent border-b-2 border-gray-200 focus:border-purple-500 focus:outline-none w-full"
                                 placeholder="הזן מיקום או לחץ על הכפתור"
                             />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">טלפון</label>
+                                <input
+                                    id="phone"
+                                    type="tel"
+                                    value={formData.phone || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="052-1234567"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="idNumber" className="block text-sm font-medium text-gray-700">מספר זהות</label>
+                                <input
+                                    id="idNumber"
+                                    type="text"
+                                    value={formData.idNumber || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="123456789"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">תאריך לידה</label>
+                                <input
+                                    id="birthDate"
+                                    type="date"
+                                    value={formData.birthDate || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="school" className="block text-sm font-medium text-gray-700">בית ספר</label>
+                                <input
+                                    id="school"
+                                    type="text"
+                                    value={formData.school || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="שם בית ספר"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label htmlFor="studyStatus" className="block text-sm font-medium text-gray-700">סטטוס לימודים</label>
+                                <input
+                                    id="studyStatus"
+                                    type="text"
+                                    value={formData.studyStatus || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="לומד / נוער עובד / חופשה"
+                                />
+                            </div>
+                        </div>
                             <button
                                 type="button"
                                 onClick={() => {
@@ -180,7 +244,7 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                                             }
                                         }, (error) => {
                                             console.error("Error getting location:", error);
-                                            alert("לא ניתן לאתר את המיקום שלך. אנא וודא שהמיקום מאופשר בדפדפן.");
+                                            alert("לא ניתן לאתר את מיקום שלך. אנא וודא שהמיקום מאופשר בדפדפן.");
                                         });
                                     } else {
                                         alert("הדפדפן שלך לא תומך באיתור מיקום.");
@@ -191,6 +255,89 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                             >
                                 <MapPinIcon className="w-5 h-5" />
                             </button>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700">כתובת מלאה</label>
+                                <input
+                                    id="address"
+                                    type="text"
+                                    value={formData.address || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="רחוב, מספר, עיר"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="city" className="block text-sm font-medium text-gray-700">עיר</label>
+                                <input
+                                    id="city"
+                                    type="text"
+                                    value={formData.city || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="תל אביב"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <label htmlFor="paymentInfo" className="block text-sm font-medium text-gray-700">פרטי תשלום (ביט / חשבון בנק)</label>
+                            <input
+                                id="paymentInfo"
+                                type="text"
+                                value={formData.paymentInfo || ''}
+                                onChange={handleInputChange}
+                                className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                placeholder="לדוגמה: bit 0521234567 או מספר חשבון"
+                            />
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">שם בנק</label>
+                                <input
+                                    id="bankName"
+                                    type="text"
+                                    value={formData.bankName || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="בנק הפועלים"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="bankBranch" className="block text-sm font-medium text-gray-700">סניף</label>
+                                <input
+                                    id="bankBranch"
+                                    type="text"
+                                    value={formData.bankBranch || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="123"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="bankAccountNumber" className="block text-sm font-medium text-gray-700">מספר חשבון</label>
+                                <input
+                                    id="bankAccountNumber"
+                                    type="text"
+                                    value={formData.bankAccountNumber || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="123456"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="bankId" className="block text-sm font-medium text-gray-700">קוד בנק</label>
+                                <input
+                                    id="bankId"
+                                    type="text"
+                                    value={formData.bankId || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="01"
+                                />
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -211,6 +358,64 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ userProfile, onSave, 
                     <div className="bg-white rounded-xl shadow-md p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-2">אישור הורים</h2>
                         <p className="text-sm text-gray-500 mb-4">בני נוער מתחת לגיל 18 נדרשים להציג אישור הורים חתום.</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label htmlFor="parentName" className="block text-sm font-medium text-gray-700">שם ההורה / האפוטרופוס</label>
+                                <input
+                                    id="parentName"
+                                    type="text"
+                                    value={formData.parentName || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="שם ההורה"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">טלפון הורה</label>
+                                <input
+                                    id="parentPhone"
+                                    type="tel"
+                                    value={formData.parentPhone || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="052-7654321"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700">אימייל הורה</label>
+                                <input
+                                    id="parentEmail"
+                                    type="email"
+                                    value={formData.parentEmail || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="dana@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="parentRelation" className="block text-sm font-medium text-gray-700">קשר להורה</label>
+                                <input
+                                    id="parentRelation"
+                                    type="text"
+                                    value={formData.parentRelation || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="אימא / אב / אפוטרופוס"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="parentAddress" className="block text-sm font-medium text-gray-700">כתובת הורה</label>
+                                <input
+                                    id="parentAddress"
+                                    type="text"
+                                    value={formData.parentAddress || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                    placeholder="רחוב, מספר, עיר"
+                                />
+                            </div>
+                        </div>
 
                         <div className="flex items-center gap-4">
                             <input

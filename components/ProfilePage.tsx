@@ -20,6 +20,80 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onEdit }) => {
                         <MapPinIcon className="w-4 h-4" />
                         <span>{userProfile.location}</span>
                     </div>
+                    <div className="mt-3 text-sm text-gray-500 space-y-2 text-right">
+                        {userProfile.address && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">כתובת:</span>
+                                <span>{userProfile.address}</span>
+                            </div>
+                        )}
+                        {userProfile.phone && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">טלפון:</span>
+                                <span>{userProfile.phone}</span>
+                            </div>
+                        )}
+                        {userProfile.idNumber && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">ת.ז:</span>
+                                <span>{userProfile.idNumber}</span>
+                            </div>
+                        )}
+                        {userProfile.city && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">עיר:</span>
+                                <span>{userProfile.city}</span>
+                            </div>
+                        )}
+                        {userProfile.school && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">בית ספר:</span>
+                                <span>{userProfile.school}</span>
+                            </div>
+                        )}
+                        {userProfile.studyStatus && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">סטטוס לימודים:</span>
+                                <span>{userProfile.studyStatus}</span>
+                            </div>
+                        )}
+                        {userProfile.birthDate && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">תאריך לידה:</span>
+                                <span>{new Date(userProfile.birthDate).toLocaleDateString('he-IL')}</span>
+                            </div>
+                        )}
+                        {userProfile.paymentInfo && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">תשלום:</span>
+                                <span>{userProfile.paymentInfo}</span>
+                            </div>
+                        )}
+                        {userProfile.parentName && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">שם הורה:</span>
+                                <span>{userProfile.parentName}</span>
+                            </div>
+                        )}
+                        {userProfile.parentPhone && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">טלפון הורה:</span>
+                                <span>{userProfile.parentPhone}</span>
+                            </div>
+                        )}
+                        {userProfile.parentEmail && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">אימייל הורה:</span>
+                                <span>{userProfile.parentEmail}</span>
+                            </div>
+                        )}
+                        {userProfile.parentalConsentStatus && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-700">סטטוס אישור הורים:</span>
+                                <span>{userProfile.parentalConsentStatus}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <button onClick={onEdit} className="flex items-center gap-2 bg-purple-100 text-purple-700 font-semibold py-2 px-4 rounded-lg hover:bg-purple-200 transition-colors">
                     <PencilIcon className="w-5 h-5" />

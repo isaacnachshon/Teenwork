@@ -1,16 +1,13 @@
 
 
 import React, { useState, useMemo, useEffect } from 'react';
-import TeenDashboard from './components/dashboards/TeenDashboard';
-import EmployerDashboard from './components/dashboards/EmployerDashboard';
-import AdminDashboard from './components/dashboards/AdminDashboard';
+import DashboardLayout from './components/dashboard/DashboardLayout';
 import LoginPage from './components/LoginPage';
 import EmployerLoginPage from './components/EmployerLoginPage';
 import TeenLoginPage from './components/TeenLoginPage';
 import LandingPage from './components/LandingPage';
 import AboutPage from './components/AboutPage';
 import EmailVerificationPage from './components/EmailVerificationPage';
-import { UserIcon, BriefcaseIcon, ShieldCheckIcon } from './components/icons';
 
 import { auth, db, getFirebaseInitError } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
@@ -28,7 +25,6 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
-  const [hideGlobalHeader, setHideGlobalHeader] = useState(false);
 
   useEffect(() => {
     // If Firebase failed to initialize, surface the error immediately.
@@ -120,6 +116,12 @@ const App: React.FC = () => {
     signOut(auth);
   };
 
+  const getUserName = (): string => {
+    if (!currentUser) return '';
+    const data = currentUser as any;
+    return data.displayName || currentUser.firebaseUser.displayName || currentUser.firebaseUser.email?.split('@')[0] || 'משתמש';
+  };
+
   const dashboard = useMemo(() => {
     switch (view) {
       case 'about':
@@ -131,7 +133,7 @@ const App: React.FC = () => {
       case 'teen':
         if (currentUser?.role === 'teen') {
           if (currentUser.firebaseUser.emailVerified) {
-            return <TeenDashboard onLogout={handleLogout} onHeaderVisibilityChange={setHideGlobalHeader} />;
+            return <DashboardLayout role="teen" userName={getUserName()} onLogout={handleLogout} />;
           } else {
             return <EmailVerificationPage user={currentUser.firebaseUser} />;
           }
@@ -140,12 +142,12 @@ const App: React.FC = () => {
 
       case 'employer':
         return currentUser?.role === 'employer'
-          ? <EmployerDashboard onLogout={handleLogout} />
+          ? <DashboardLayout role="employer" userName={getUserName()} onLogout={handleLogout} />
           : <EmployerLoginPage />;
 
       case 'admin':
         return currentUser?.role === 'admin'
-          ? <AdminDashboard onLogout={handleLogout} />
+          ? <DashboardLayout role="admin" userName={getUserName()} onLogout={handleLogout} />
           : <LoginPage />;
 
       default:
@@ -153,24 +155,8 @@ const App: React.FC = () => {
     }
   }, [view, currentUser]);
 
-  const getButtonClass = (buttonRole: Role) => {
-    const baseClasses = "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2";
-    if (view === buttonRole) {
-      switch (buttonRole) {
-        case 'teen':
-          return `${baseClasses} bg-purple-600 text-white shadow-lg scale-105 ring-purple-500`;
-        case 'employer':
-          return `${baseClasses} bg-blue-600 text-white shadow-lg scale-105 ring-blue-500`;
-        case 'admin':
-          return `${baseClasses} bg-gray-700 text-white shadow-lg scale-105 ring-gray-600`;
-        default:
-          return '';
-      }
-    }
-    return `${baseClasses} bg-white text-gray-700 hover:bg-gray-100`;
-  };
-
-  const showHeader = view !== 'landing' && !hideGlobalHeader;
+  const isDashboard = view === 'teen' || view === 'employer' || view === 'admin';
+  const showingDashboard = isDashboard && currentUser?.role === view;
 
   if (loading) {
     return (
@@ -193,33 +179,12 @@ const App: React.FC = () => {
     );
   }
 
+  if (showingDashboard) {
+    return dashboard;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      {showHeader && (
-        <header className="bg-white shadow-md p-4 sticky top-0 z-50 animate-in fade-in-0 duration-300">
-          <div className="container mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button onClick={() => setView('landing')} aria-label="TEENWORK - חזרה לדף הבית" className="text-2xl font-bold text-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded transition-transform duration-200 hover:scale-105">
-                TEENWORK
-              </button>
-            </div>
-            <div className="flex items-center gap-4 bg-gray-100 p-2 rounded-xl">
-              <button onClick={() => handleRoleChange('teen')} className={getButtonClass('teen')}>
-                <UserIcon className="w-5 h-5" />
-                <span>נוער</span>
-              </button>
-              <button onClick={() => handleRoleChange('employer')} className={getButtonClass('employer')}>
-                <BriefcaseIcon className="w-5 h-5" />
-                <span>מעסיקים</span>
-              </button>
-              <button onClick={() => handleRoleChange('admin')} className={getButtonClass('admin')}>
-                <ShieldCheckIcon className="w-5 h-5" />
-                <span>מנהלים</span>
-              </button>
-            </div>
-          </div>
-        </header>
-      )}
       <main id="main-content" tabIndex={-1}>
         {dashboard}
       </main>
