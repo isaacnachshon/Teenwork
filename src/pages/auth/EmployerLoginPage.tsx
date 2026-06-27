@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BriefcaseIcon, GoogleIcon, PencilIcon } from '@/components/icons';
 import { auth, db, storage } from '@/firebase';
 import {
@@ -7,10 +7,15 @@ import {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    deleteUser,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MIN_PASSWORD_LENGTH = 8;
 
 interface EmployerLoginPageProps {
     onBack?: () => void;
@@ -31,11 +36,27 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
     const [resetEmail, setResetEmail] = useState('');
     const [resetSuccess, setResetSuccess] = useState('');
 
+    useEffect(() => {
+        return () => {
+            if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+        };
+    }, [imagePreview]);
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            if (file.size > MAX_IMAGE_SIZE) {
+                setError(`התמונה גדולה מדי. מקסימום ${MAX_IMAGE_SIZE / 1024 / 1024}MB.`);
+                return;
+            }
+            if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                setError('רק קבצי JPEG, PNG או WebP מותרים.');
+                return;
+            }
+            if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
             setProfileImage(file);
             setImagePreview(URL.createObjectURL(file));
+            setError('');
         }
     };
 
@@ -50,7 +71,12 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (err: any) {
-            setError('אימייל או סיסמה שגויים.');
+            if (err.code === 'auth/too-many-requests') {
+                setError('יותר מדי ניסיונות. נסה שוב מאוחר יותר.');
+            } else {
+                setError('אימייל או סיסמה שגויים.');
+            }
+        } finally {
             setIsLoading(false);
         }
     };
@@ -58,12 +84,20 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (password !== confirmPassword) {
-            setError('הסיסמאות אינן תואמות.');
-            return;
-        }
         if (!companyName.trim() || !email.trim() || !password.trim()) {
             setError('נא למלא את כל השדות.');
+            return;
+        }
+        if (companyName.trim().length < 2) {
+            setError('שם החברה חייב להכיל לפחות 2 תווים.');
+            return;
+        }
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            setError(`הסיסמה חייבת להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים.`);
+            return;
+        }
+        if (password !== confirmPassword) {
+            setError('הסיסמאות אינן תואמות.');
             return;
         }
         setIsLoading(true);
@@ -73,37 +107,52 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
 
             let companyLogoUrl = '';
             if (profileImage) {
-                const storageRef = ref(storage, `companyLogos/${user.uid}`);
-                await uploadBytes(storageRef, profileImage);
-                companyLogoUrl = await getDownloadURL(storageRef);
+                try {
+                    const storageRef = ref(storage, `companyLogos/${user.uid}`);
+                    await uploadBytes(storageRef, profileImage);
+                    companyLogoUrl = await getDownloadURL(storageRef);
+                } catch (uploadErr) {
+                    await deleteUser(user);
+                    throw new Error('העלאת הלוגו נכשלה.');
+                }
             }
 
             try {
                 await setDoc(doc(db, 'users', user.uid), {
                     uid: user.uid,
-                    email: user.email,
-                    companyName: companyName,
+                    displayName: companyName,
+                    email: user.email || '',
+                    photoURL: companyLogoUrl,
+                    companyName,
+                    companyLogoUrl,
                     role: 'employer',
-                    createdAt: new Date(),
-                    companyLogoUrl: companyLogoUrl,
+                    phone: '',
+                    city: '',
+                    birthDate: '',
+                    profileCompleted: false,
+                    status: 'active',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
                 });
-            } catch (errInner) {
-                // If Firestore write fails after upload, try to remove uploaded logo to avoid orphaned files.
-                if (companyLogoUrl && profileImage) {
-                    try {
-                        const uploadedRef = ref(storage, `companyLogos/${user.uid}`);
-                        await deleteObject(uploadedRef);
-                    } catch (cleanupErr) {
-                        console.error('Failed to cleanup uploaded company logo after Firestore error:', cleanupErr);
-                    }
+            } catch (firestoreErr) {
+                if (companyLogoUrl) {
+                    try { await deleteObject(ref(storage, `companyLogos/${user.uid}`)); } catch (_) {}
                 }
-                throw errInner;
+                try { await deleteUser(user); } catch (_) {}
+                throw firestoreErr;
             }
         } catch (err: any) {
             if (err.code === 'auth/email-already-in-use') {
                 setError('משתמש עם אימייל זה כבר קיים. להתחבר?');
+            } else if (err.code === 'auth/weak-password') {
+                setError('הסיסמה חלשה מדי.');
+            } else if (err.code === 'auth/invalid-email') {
+                setError('כתובת אימייל לא תקינה.');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('יותר מדי ניסיונות. נסה שוב מאוחר יותר.');
             } else {
-                setError('הרשמה נכשלה. נסה שוב.');
+                setError(err.message || 'הרשמה נכשלה. נסה שוב.');
             }
         } finally {
             setIsLoading(false);
@@ -134,9 +183,7 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
         setError('');
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account' // Always show account selection
-        });
+        provider.setCustomParameters({ prompt: 'select_account' });
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
@@ -147,23 +194,33 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
             if (!userDoc.exists()) {
                 await setDoc(userDocRef, {
                     uid: user.uid,
-                    email: user.email,
-                    companyName: user.displayName || 'My Company', // Default company name
+                    displayName: user.displayName || '',
+                    email: user.email || '',
+                    photoURL: user.photoURL || '',
+                    companyName: user.displayName || 'החברה שלי',
+                    companyLogoUrl: user.photoURL || '',
                     role: 'employer',
-                    createdAt: new Date(),
+                    phone: '',
+                    city: '',
+                    birthDate: '',
+                    profileCompleted: false,
+                    status: 'active',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
                 });
             } else {
                 const userData = userDoc.data();
                 if (userData.role !== 'employer') {
                     await auth.signOut();
-                    setError("חשבון זה רשום כתפקיד אחר.");
+                    setError('חשבון זה רשום כתפקיד אחר.');
                 }
             }
         } catch (err: any) {
-            console.error("Google Auth Error:", err);
+            if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
             if (err.code === 'auth/unauthorized-domain') {
-                setError('הדומיין אינו מורשה ב-Firebase. יש להוסיף את הדומיין בהגדרות ה-Authentication ב-Firebase Console.');
-            } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+                setError('הדומיין אינו מורשה ב-Firebase.');
+            } else {
                 setError('התחברות עם גוגל נכשלה. נסה שוב.');
             }
         } finally {
@@ -211,11 +268,9 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                             </div>
                         </div>
                         {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
-                        <div>
-                            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                                {isLoading ? 'מתחבר...' : 'התחברות'}
-                            </button>
-                        </div>
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isLoading ? 'מתחבר...' : 'התחברות'}
+                        </button>
                     </form>
                 ) : (
                     <form onSubmit={handleSignup} className="space-y-4">
@@ -223,14 +278,10 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                             <label className="block text-sm font-medium text-gray-700 text-center mb-2">לוגו חברה (אופציונלי)</label>
                             <div className="flex justify-center">
                                 <div className="relative">
-                                    <img
-                                        src={imagePreview || `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName || ' ')}&background=D1E5F8&color=2563EB&bold=true`}
-                                        alt="תצוגה מקדימה של לוגו החברה"
-                                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
-                                    />
+                                    <img src={imagePreview || `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName || ' ')}&background=D1E5F8&color=2563EB&bold=true`} alt="תצוגה מקדימה" className="w-24 h-24 rounded-full object-cover border-2 border-gray-300" />
                                     <label htmlFor="profileImage" className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-md">
                                         <PencilIcon className="w-4 h-4" />
-                                        <input id="profileImage" name="profileImage" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                                        <input id="profileImage" name="profileImage" type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
                                     </label>
                                 </div>
                             </div>
@@ -244,7 +295,7 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                             <input id="email-signup" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="your@company.com" />
                         </div>
                         <div>
-                            <label htmlFor="password-signup" className="block text-sm font-medium text-gray-700">סיסמה</label>
+                            <label htmlFor="password-signup" className="block text-sm font-medium text-gray-700">סיסמה (לפחות {MIN_PASSWORD_LENGTH} תווים)</label>
                             <input id="password-signup" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
                         </div>
                         <div>
@@ -252,32 +303,19 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                             <input id="confirmPassword" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
                         </div>
                         {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
-                        <div>
-                            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                                {isLoading ? 'יוצר חשבון...' : 'הרשמה'}
-                            </button>
-                        </div>
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isLoading ? 'יוצר חשבון...' : 'הרשמה'}
+                        </button>
                     </form>
                 )}
                 <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-white text-gray-500">או המשך עם</span>
-                    </div>
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true"><div className="w-full border-t border-gray-300"></div></div>
+                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">או המשך עם</span></div>
                 </div>
-                <div>
-                    <button
-                        type="button"
-                        onClick={handleGoogleAuth}
-                        disabled={isGoogleLoading}
-                        className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <GoogleIcon className="w-5 h-5" />
-                        {isGoogleLoading ? 'טוען...' : <span>{authMode === 'login' ? 'התחברות עם גוגל' : 'הרשמה עם גוגל'}</span>}
-                    </button>
-                </div>
+                <button type="button" onClick={handleGoogleAuth} disabled={isGoogleLoading} className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <GoogleIcon className="w-5 h-5" />
+                    {isGoogleLoading ? 'טוען...' : <span>{authMode === 'login' ? 'התחברות עם גוגל' : 'הרשמה עם גוגל'}</span>}
+                </button>
                 <p className="text-center text-sm text-gray-600 mt-6">
                     {authMode === 'login' ? 'אין לך חשבון? ' : 'יש לך כבר חשבון? '}
                     <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="font-semibold text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
@@ -285,14 +323,10 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                     </button>
                 </p>
                 <p className="text-center text-sm text-gray-500">
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 underline">
-                        מדיניות פרטיות
-                    </a>
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 underline">מדיניות פרטיות</a>
                 </p>
                 {onBack && (
-                    <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-blue-600 transition-colors mt-2">
-                        ← חזרה לדף הראשי
-                    </button>
+                    <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-blue-600 transition-colors mt-2">← חזרה לדף הראשי</button>
                 )}
             </div>
         </div>

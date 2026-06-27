@@ -70,7 +70,6 @@ const App: React.FC = () => {
             displayName: defaultName,
             email: user.email || '',
             photoURL: user.photoURL || '',
-            role: 'teen',
           } as Partial<UserProfile>);
 
           unsubProfile = UserService.onSnapshot(user.uid, (profile) => {

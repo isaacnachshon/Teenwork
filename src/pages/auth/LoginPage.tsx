@@ -27,18 +27,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // Removed hardcoded admin email check: App-level role lookup determines access.
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // App component will handle successful login via onAuthStateChanged
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, 'users', credential.user.uid));
+      if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+        await auth.signOut();
+        setError('אין לך הרשאות מנהל. פנה למנהל המערכת.');
+        return;
+      }
+      if (onLoginSuccess) onLoginSuccess();
     } catch (err: any) {
       if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         setError('אימייל או סיסמה שגויים.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('יותר מדי ניסיונות. נסה שוב מאוחר יותר.');
       } else {
         setError('אירעה שגיאה. נסה שוב מאוחר יותר.');
-        console.error(err);
       }
+    } finally {
       setIsLoading(false);
     }
   };

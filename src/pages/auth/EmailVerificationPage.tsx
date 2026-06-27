@@ -1,29 +1,43 @@
 
-import React, { useState, useEffect } from 'react';
-import { User, sendEmailVerification, signOut } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/firebase';
+import { AuthService } from '@/services/AuthService';
 import { LogOutIcon, MailCheckIcon } from '@/components/icons';
 
 interface EmailVerificationPageProps {
     user: User;
 }
 
+const POLL_INTERVAL_MS = 10_000;
+
 const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) => {
     const [isSending, setIsSending] = useState(false);
     const [resentMessage, setResentMessage] = useState('');
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(0);
+    const isChecking = useRef(false);
 
     useEffect(() => {
-        const interval = setInterval(async () => {
-            if (auth.currentUser) {
-                await auth.currentUser.reload();
-                if (auth.currentUser.emailVerified) {
-                    window.location.reload();
+        const checkVerification = async () => {
+            if (isChecking.current) return;
+            isChecking.current = true;
+            try {
+                if (auth.currentUser) {
+                    await auth.currentUser.reload();
+                    if (auth.currentUser.emailVerified) {
+                        window.location.reload();
+                    }
                 }
+            } catch (err) {
+                console.error('Verification check error:', err);
+            } finally {
+                isChecking.current = false;
             }
-        }, 3000);
+        };
 
+        checkVerification();
+        const interval = setInterval(checkVerification, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
     }, []);
 
@@ -36,6 +50,7 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
     }, [countdown]);
 
     const handleResend = async () => {
+        if (countdown > 0 || isSending) return;
         setIsSending(true);
         setError('');
         setResentMessage('');
@@ -44,7 +59,7 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
             setResentMessage('אימייל אימות נשלח!');
             setCountdown(60);
         } catch (err: any) {
-             if (err.code === 'auth/too-many-requests') {
+            if (err.code === 'auth/too-many-requests') {
                 setError('יותר מדי בקשות. נסה שוב מאוחר יותר.');
             } else {
                 setError('שליחת האימייל נכשלה. נסה שוב מאוחר יותר.');
@@ -52,10 +67,6 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
         } finally {
             setIsSending(false);
         }
-    };
-    
-    const handleLogout = () => {
-        signOut(auth);
     };
 
     return (
@@ -86,7 +97,7 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ user }) =
                         {isSending ? 'שולח...' : (countdown > 0 ? `שלח שוב בעוד ${countdown} שניות` : 'שלח אימייל אימות מחדש')}
                     </button>
                     <button
-                        onClick={handleLogout}
+                        onClick={() => AuthService.logout()}
                         className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                     >
                         <LogOutIcon className="w-5 h-5" />
