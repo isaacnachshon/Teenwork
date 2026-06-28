@@ -84,19 +84,21 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
   return (
     <div dir="rtl" style={{ fontFamily: "'Assistant',sans-serif", display: 'flex', minHeight: '100vh', height: '100vh', background: '#F5F6F8', color: '#1B2333' }}>
       {/* Sidebar */}
-      <aside style={{ width: 250, flexShrink: 0, background: '#fff', borderLeft: '1px solid #EAECEF', display: 'flex', flexDirection: 'column', padding: '22px 16px', height: '100vh' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 10px 22px' }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, background: '#7B2FF6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 16 }}>T</div>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '.5px', color: '#7B2FF6' }}>TEENWORK</div>
+      <aside style={{ width: 260, flexShrink: 0, background: '#fff', borderLeft: '1px solid #EAECEF', display: 'flex', flexDirection: 'column', padding: '20px 14px', height: '100vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px 24px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 17, boxShadow: '0 3px 10px rgba(123,47,246,.25)' }}>T</div>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '.5px', color: '#7B2FF6' }}>TEENWORK</div>
         </div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#9AA3B2', padding: '0 12px 9px', letterSpacing: '.4px' }}>תפריט</div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#B0B8C7', padding: '0 14px 8px', letterSpacing: '.5px', textTransform: 'uppercase' as const }}>תפריט</div>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {NAV[role].map(([key, label, ic]) => {
             const active = tab === key;
             const badge = badges[key] || 0;
             return (
-              <button key={key} onClick={() => setTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', border: 'none', cursor: 'pointer', textAlign: 'right', padding: '11px 12px', borderRadius: 11, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 600, transition: 'background .14s' }}>
-                <span style={{ display: 'flex' }}>{DIcon(ic, { size: 19, color: active ? '#6A1FD0' : '#7A8699' })}</span>
+              <button key={key} onClick={() => setTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: active ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', textAlign: 'right', padding: '12px 14px', borderRadius: 12, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 500, transition: 'all .15s', boxShadow: active ? '0 2px 8px rgba(123,47,246,.08)' : 'none' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? '#E8DAF8' : '#F4F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
+                  {DIcon(ic, { size: 17, color: active ? '#6A1FD0' : '#7A8699' })}
+                </div>
                 <span style={{ flex: 1 }}>{label}</span>
                 {badge > 0 && <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 10, background: '#7B2FF6', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>}
               </button>
