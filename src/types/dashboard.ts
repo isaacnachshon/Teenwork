@@ -1,5 +1,5 @@
 export type DashRole = 'admin' | 'employer' | 'teen';
-export type TabKey = 'overview' | 'users' | 'connections' | 'chat' | 'profile' | 'settings';
+export type TabKey = 'overview' | 'users' | 'connections' | 'chat' | 'profile' | 'settings' | 'ai';
 export type ConnStatus = 'pending' | 'active' | 'completed' | 'rejected';
 export type UserStatus = 'verified' | 'pending' | 'blocked';
 

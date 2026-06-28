@@ -8,6 +8,7 @@ import UsersPage from '@/pages/dashboard/UsersPage';
 import ChatPage from '@/pages/dashboard/ChatPage';
 import ProfileTab from '@/pages/dashboard/ProfileTab';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
+import AIAssistantPage from '@/pages/dashboard/AIAssistantPage';
 import RightsInfoModal from '@/components/RightsInfoModal';
 import { auth, db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -28,7 +29,7 @@ const ROLE_LABEL: Record<DashRole, string> = {
 const NAV: Record<DashRole, [TabKey, string, string][]> = {
   admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat'], ['settings', 'הגדרות', 'gear']],
   employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
-  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
+  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['ai', 'עוזר AI', 'star'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
 };
 
 const SEARCH_PH: Record<DashRole, string> = {
@@ -75,6 +76,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
       case 'connections': return <ConnectionsPage role={role} />;
       case 'chat': return <ChatPage role={role} />;
       case 'profile': return <ProfileTab role={role} />;
+      case 'ai': return <AIAssistantPage />;
       case 'settings': return <SettingsPage role={role} onLogout={onLogout} />;
     }
   };

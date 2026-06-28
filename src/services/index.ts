@@ -14,3 +14,4 @@ export { ReportService } from './ReportService';
 export type { ReportDoc, ReportType, ReportStatus } from './ReportService';
 export { SettingsService } from './SettingsService';
 export type { AppSettings } from './SettingsService';
+export { AIService } from './AIService';
