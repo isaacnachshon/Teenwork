@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import NotificationsPanel from '@/components/NotificationsPanel';
 import { DashRole, TabKey, avatarGrad, initial } from '@/types/dashboard';
 import OverviewPage from '@/pages/dashboard/OverviewPage';
 import ConnectionsPage from '@/pages/dashboard/ConnectionsPage';
@@ -10,6 +11,7 @@ import SettingsPage from '@/pages/dashboard/SettingsPage';
 import RightsInfoModal from '@/components/RightsInfoModal';
 import { auth, db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { NotificationService } from '@/services/NotificationService';
 
 interface Props {
   role: DashRole;
@@ -39,21 +41,30 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
   const [tab, setTab] = useState<TabKey>('overview');
   const [userName, setUserName] = useState(fallbackName);
   const [showRightsModal, setShowRightsModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const uid = auth?.currentUser?.uid || '';
 
   useEffect(() => {
-    const uid = auth?.currentUser?.uid;
     if (!uid) return;
     getDoc(doc(db, 'users', uid)).then(snap => {
       if (snap.exists()) {
         const data = snap.data();
-        const name = data.name || data.companyName || fallbackName;
-        setUserName(name);
+        setUserName(data.name || data.companyName || fallbackName);
       }
     }).catch(() => {});
   }, [fallbackName]);
 
-  const badges: Partial<Record<TabKey, number>> = {};
+  useEffect(() => {
+    if (!uid) return;
+    const unsub = NotificationService.onUserNotifications(uid, (notifs) => {
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    });
+    return unsub;
+  }, [uid]);
 
+  const badges: Partial<Record<TabKey, number>> = {};
   const av = avatarGrad(userName);
   const ini = initial(userName);
 
@@ -119,10 +130,17 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
             <input placeholder={SEARCH_PH[role]} style={{ border: 'none', background: 'transparent', outline: 'none', flex: 1, fontFamily: 'inherit', fontSize: 14, color: '#2A3242' }} />
           </div>
           <div style={{ flex: 1 }} />
-          <button style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: '1px solid #ECEEF1', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-            <span style={{ display: 'flex' }}>{DIcon('bell', { size: 19, color: '#5A6478' })}</span>
-            <span style={{ position: 'absolute', top: 9, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#E23B4E', border: '2px solid #fff' }} />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: `1px solid ${showNotifications ? '#7B2FF6' : '#ECEEF1'}`, background: showNotifications ? '#F3ECFE' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+              <span style={{ display: 'flex' }}>{DIcon('bell', { size: 19, color: showNotifications ? '#7B2FF6' : '#5A6478' })}</span>
+              {unreadCount > 0 && (
+                <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#E23B4E', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+            <NotificationsPanel userId={uid} isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+          </div>
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: av, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>{ini}</div>
         </header>
 
