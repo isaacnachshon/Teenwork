@@ -28,8 +28,8 @@ const ROLE_LABEL: Record<DashRole, string> = {
 
 const NAV: Record<DashRole, [TabKey, string, string][]> = {
   admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat'], ['settings', 'הגדרות', 'gear']],
-  employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
-  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['ai', 'עוזר AI', 'star'], ['profile', 'פרופיל', 'user'], ['settings', 'הגדרות', 'gear']],
+  employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['settings', 'הגדרות', 'gear']],
+  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['ai', 'עוזר AI', 'star'], ['settings', 'הגדרות', 'gear']],
 };
 
 const SEARCH_PH: Record<DashRole, string> = {
@@ -112,13 +112,13 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
           </button>
         )}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 13, background: '#F7F8FA' }}>
+          <button onClick={() => setTab('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 13, background: tab === 'profile' ? '#F3ECFE' : '#F7F8FA', border: tab === 'profile' ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', width: '100%', transition: 'all .15s' }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: av, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>{ini}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
-              <div style={{ fontSize: 12, color: '#8A93A3' }}>{ROLE_LABEL[role]}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: tab === 'profile' ? '#5A18C2' : '#1B2333' }}>{userName}</div>
+              <div style={{ fontSize: 12, color: tab === 'profile' ? '#7B2FF6' : '#8A93A3' }}>{ROLE_LABEL[role]} · הפרופיל שלי</div>
             </div>
-          </div>
+          </button>
           <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: '1px solid #E6E8ED', background: '#fff', borderRadius: 11, padding: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#5A6478', fontWeight: 600 }}>
             <span style={{ display: 'flex' }}>{DIcon('logout', { size: 18, color: '#7A8699' })}</span>התנתקות
           </button>
