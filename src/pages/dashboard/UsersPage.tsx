@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import { SkeletonTable } from '@/components/Skeleton';
 import { USER_STATUS, UserStatus, avatarGrad, initial } from '@/types/dashboard';
 import { db, firebaseConfig } from '@/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
@@ -84,8 +85,8 @@ const AddUserModal: React.FC<{ onClose: () => void; onDone: () => void }> = ({ o
           </div>
           {error && <div style={{ fontSize: 13, color: '#C8364A', fontWeight: 600 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #E3E6EC', background: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#5A6478' }}>ביטול</button>
-            <button type="submit" disabled={submitting} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#7B2FF6', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
+            <button type="button" className="tw-btn-ghost" onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #E3E6EC', background: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#5A6478' }}>ביטול</button>
+            <button type="submit" className="tw-btn-primary" disabled={submitting} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#7B2FF6', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
               {submitting ? 'יוצר...' : 'צור משתמש'}
             </button>
           </div>
@@ -136,8 +137,8 @@ const EditUserModal: React.FC<{ user: ManagedUser; role: 'teen' | 'employer'; on
           </div>
           {error && <div style={{ fontSize: 13, color: '#C8364A', fontWeight: 600 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #E3E6EC', background: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#5A6478' }}>ביטול</button>
-            <button type="submit" disabled={submitting} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#7B2FF6', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
+            <button type="button" className="tw-btn-ghost" onClick={onClose} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #E3E6EC', background: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#5A6478' }}>ביטול</button>
+            <button type="submit" className="tw-btn-primary" disabled={submitting} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#7B2FF6', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
               {submitting ? 'שומר...' : 'שמור'}
             </button>
           </div>
@@ -251,7 +252,7 @@ const UsersPage: React.FC = () => {
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-.4px' }}>ניהול משתמשים</h1>
           <div style={{ marginTop: 5, fontSize: 14, color: '#8A93A3' }}>נערים ומעסיקים רשומים במערכת</div>
         </div>
-        <button onClick={() => setAddModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#7B2FF6', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+        <button className="tw-btn-primary" onClick={() => setAddModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#7B2FF6', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
           {DIcon('plus', { size: 18, color: '#fff' })}הוסף משתמש
         </button>
       </div>
@@ -270,11 +271,11 @@ const UsersPage: React.FC = () => {
 
       {/* Table */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#8A93A3', fontSize: 16 }}>טוען משתמשים...</div>
+        <SkeletonTable />
       ) : src.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#8A93A3', fontSize: 16 }}>לא נמצאו משתמשים.</div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, overflow: 'hidden' }}>
+        <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.3fr 1fr 0.9fr 145px', gap: 12, padding: '13px 20px', background: '#FAFBFC', borderBottom: '1px solid #EEF0F3', fontSize: 12.5, fontWeight: 700, color: '#8A93A3' }}>
             <div>{cols.c1}</div><div>{cols.c2}</div><div>{cols.c3}</div><div>{cols.c4}</div><div>{cols.c5}</div><div style={{ textAlign: 'left' }}>{cols.c6}</div>
           </div>

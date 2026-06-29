@@ -115,7 +115,7 @@ const AIAssistantPage: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, maxWidth: 520, width: '100%' }}>
             {QUICK_ACTIONS.map(qa => (
-              <button key={qa.action} onClick={() => handleQuickAction(qa.action)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px', borderRadius: 14, border: '1px solid #EEF0F3', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+              <button key={qa.action} className="tw-card" onClick={() => handleQuickAction(qa.action)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px', borderRadius: 14, border: '1px solid #EEF0F3', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: qa.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {DIcon(qa.icon, { size: 20, color: qa.color })}
                 </div>
@@ -147,7 +147,7 @@ const AIAssistantPage: React.FC = () => {
       {/* Input */}
       <div style={{ padding: '14px 20px', background: '#fff', borderTop: '1px solid #EAECEF', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         {messages.length > 0 && (
-          <button onClick={() => setMessages([])} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E6E8ED', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }} title="שיחה חדשה">
+          <button className="tw-btn-ghost" onClick={() => setMessages([])} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E6E8ED', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }} title="שיחה חדשה">
             {DIcon('plus', { size: 18, color: '#7A8699' })}
           </button>
         )}
@@ -159,7 +159,7 @@ const AIAssistantPage: React.FC = () => {
           disabled={loading}
           style={{ flex: 1, border: '1px solid #E6E8ED', borderRadius: 12, padding: '12px 15px', outline: 'none', fontFamily: 'inherit', fontSize: 14, background: '#F8F9FB' }}
         />
-        <button onClick={handleSend} disabled={loading || !input.trim()} style={{ width: 46, height: 46, borderRadius: 12, border: 'none', background: '#7B2FF6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, opacity: loading || !input.trim() ? 0.5 : 1 }}>
+        <button className="tw-btn-primary" onClick={handleSend} disabled={loading || !input.trim()} style={{ width: 46, height: 46, borderRadius: 12, border: 'none', background: '#7B2FF6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, opacity: loading || !input.trim() ? 0.5 : 1 }}>
           {DIcon('send', { size: 19, color: '#fff' })}
         </button>
       </div>

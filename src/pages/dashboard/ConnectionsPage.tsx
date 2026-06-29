@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import { Skeleton, SkeletonRow } from '@/components/Skeleton';
 import { DashRole, ConnStatus, CONN_STATUS, avatarGrad, initial } from '@/types/dashboard';
 import { auth, db } from '@/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -146,8 +147,14 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
 
   if (loading) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 16, color: '#8A93A3' }}>טוען נתונים...</div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+        <div style={{ marginBottom: 22 }}>
+          <Skeleton width={180} height={25} style={{ borderRadius: 6, marginBottom: 8 }} />
+          <Skeleton width={250} height={14} style={{ borderRadius: 6 }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SkeletonRow /><SkeletonRow /><SkeletonRow />
+        </div>
       </div>
     );
   }
@@ -175,13 +182,17 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
 
       {/* Empty State */}
       {filtered.length === 0 && (
-        <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '48px 24px', textAlign: 'center' }}>
-          <div style={{ marginBottom: 12 }}>{DIcon('briefcase', { size: 40, color: '#C8CDD7' })}</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#4A576E', marginBottom: 6 }}>
-            {records.length === 0 ? 'אין התקשרויות עדיין' : 'אין תוצאות לסינון זה'}
-          </div>
-          <div style={{ fontSize: 14, color: '#8A93A3' }}>
-            {role === 'teen' ? 'ברגע שתגיש מועמדות למשרה, היא תופיע כאן' : role === 'employer' ? 'ברגע שנערים יגישו מועמדות, הם יופיעו כאן' : 'אין התקשרויות במערכת'}
+        <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16 }}>
+          <div className="tw-empty-state">
+            <div className="tw-empty-icon">
+              {DIcon('briefcase', { size: 32, color: '#7B2FF6' })}
+            </div>
+            <h3 className="tw-empty-title">
+              {records.length === 0 ? 'אין התקשרויות עדיין' : 'אין תוצאות לסינון זה'}
+            </h3>
+            <p className="tw-empty-desc">
+              {role === 'teen' ? 'ברגע שתגיש מועמדות למשרה, היא תופיע כאן' : role === 'employer' ? 'ברגע שנערים יגישו מועמדות, הם יופיעו כאן' : 'אין התקשרויות במערכת'}
+            </p>
           </div>
         </div>
       )}
@@ -192,7 +203,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
           const meta = CONN_STATUS[rec.status];
           const actions = getActions(rec);
           return (
-            <div key={rec.id} style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div key={rec.id} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 175 }}>
                 <div style={{ width: 46, height: 46, borderRadius: '50%', background: avatarGrad(rec.teenName), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 17, flexShrink: 0 }}>{initial(rec.teenName)}</div>
                 <div>
@@ -206,12 +217,12 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
                 <div style={{ fontSize: 12.5, color: '#8A93A3' }}>{getSub2(rec)}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '6px 12px', borderRadius: 9, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
+                <span className={rec.status === 'pending' ? 'tw-pulse' : ''} style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
                 {meta.label}
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 {actions.map((a, i) => (
-                  <button key={i} onClick={a.go} style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: a.bg, color: a.color, border: a.border }}>{a.label}</button>
+                  <button key={i} className={a.bg === '#7B2FF6' ? 'tw-btn-primary' : 'tw-btn-ghost'} onClick={a.go} style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: a.bg, color: a.color, border: a.border }}>{a.label}</button>
                 ))}
               </div>
             </div>

@@ -95,7 +95,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
             const active = tab === key;
             const badge = badges[key] || 0;
             return (
-              <button key={key} onClick={() => setTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: active ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', textAlign: 'right', padding: '12px 14px', borderRadius: 12, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 500, transition: 'all .15s', boxShadow: active ? '0 2px 8px rgba(123,47,246,.08)' : 'none' }}>
+              <button key={key} className="tw-nav-btn" onClick={() => setTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: active ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', textAlign: 'right', padding: '12px 14px', borderRadius: 12, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 500, transition: 'all .15s', boxShadow: active ? '0 2px 8px rgba(123,47,246,.08)' : 'none' }}>
                 <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? '#E8DAF8' : '#F4F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
                   {DIcon(ic, { size: 17, color: active ? '#6A1FD0' : '#7A8699' })}
                 </div>
@@ -106,20 +106,20 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
           })}
         </nav>
         {role === 'teen' && (
-          <button onClick={() => setShowRightsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', border: '1px solid #E8DAF8', cursor: 'pointer', textAlign: 'right', padding: '11px 12px', borderRadius: 11, fontFamily: 'inherit', fontSize: 15, background: '#FAF5FF', color: '#7B2FF6', fontWeight: 700, marginTop: 12, transition: 'background .14s' }}>
+          <button className="tw-nav-btn" onClick={() => setShowRightsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', border: '1px solid #E8DAF8', cursor: 'pointer', textAlign: 'right', padding: '11px 12px', borderRadius: 11, fontFamily: 'inherit', fontSize: 15, background: '#FAF5FF', color: '#7B2FF6', fontWeight: 700, marginTop: 12, transition: 'background .14s' }}>
             <span style={{ display: 'flex' }}>{DIcon('scale', { size: 19, color: '#7B2FF6' })}</span>
             <span style={{ flex: 1 }}>זכויות נוער</span>
           </button>
         )}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button onClick={() => setTab('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 13, background: tab === 'profile' ? '#F3ECFE' : '#F7F8FA', border: tab === 'profile' ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', width: '100%', transition: 'all .15s' }}>
+          <button className="tw-nav-btn" onClick={() => setTab('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 13, background: tab === 'profile' ? '#F3ECFE' : '#F7F8FA', border: tab === 'profile' ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', width: '100%', transition: 'all .15s' }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: av, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>{ini}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: tab === 'profile' ? '#5A18C2' : '#1B2333' }}>{userName}</div>
               <div style={{ fontSize: 12, color: tab === 'profile' ? '#7B2FF6' : '#8A93A3' }}>{ROLE_LABEL[role]} · הפרופיל שלי</div>
             </div>
           </button>
-          <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: '1px solid #E6E8ED', background: '#fff', borderRadius: 11, padding: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#5A6478', fontWeight: 600 }}>
+          <button className="tw-btn-ghost" onClick={onLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: '1px solid #E6E8ED', background: '#fff', borderRadius: 11, padding: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#5A6478', fontWeight: 600 }}>
             <span style={{ display: 'flex' }}>{DIcon('logout', { size: 18, color: '#7A8699' })}</span>התנתקות
           </button>
         </div>
@@ -149,7 +149,9 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
         </header>
 
         {/* Content */}
-        {renderContent()}
+        <div className="tw-page-enter" key={tab}>
+          {renderContent()}
+        </div>
       </main>
       {role === 'teen' && <RightsInfoModal isOpen={showRightsModal} onClose={() => setShowRightsModal(false)} />}
     </div>

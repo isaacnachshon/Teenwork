@@ -1,0 +1,155 @@
+/* TeenWork Dashboard — Visual Polish v1.0 */
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes tw-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tw-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes tw-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ===== PAGE TRANSITIONS ===== */
+
+.tw-page-enter {
+  animation: tw-fade-in 0.25s ease-out both;
+}
+
+/* ===== CARDS ===== */
+
+.tw-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(123, 47, 246, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.tw-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(123, 47, 246, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== SIDEBAR NAV ===== */
+
+.tw-nav-btn {
+  transition: all 0.15s ease !important;
+}
+
+.tw-nav-btn:hover {
+  background: #F8F5FE !important;
+  transform: translateX(-2px);
+}
+
+.tw-nav-btn:active {
+  transform: scale(0.98);
+}
+
+/* ===== BUTTONS ===== */
+
+.tw-btn-primary {
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tw-btn-primary:hover {
+  filter: brightness(1.12);
+  transform: scale(1.03);
+  box-shadow: 0 4px 15px rgba(123, 47, 246, 0.3);
+}
+
+.tw-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.tw-btn-ghost {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.tw-btn-ghost:hover {
+  background: #F8F5FE !important;
+  border-color: #D4C4F0 !important;
+}
+
+.tw-btn-ghost:active {
+  transform: scale(0.97);
+}
+
+/* ===== INPUT FOCUS ===== */
+
+[dir="rtl"] input:focus,
+[dir="rtl"] textarea:focus,
+[dir="rtl"] select:focus {
+  border-color: #7B2FF6 !important;
+  box-shadow: 0 0 0 3px rgba(123, 47, 246, 0.12) !important;
+  outline: none;
+}
+
+/* ===== SKELETON LOADING ===== */
+
+.tw-skeleton {
+  background: linear-gradient(90deg, #EEF0F3 25%, #F8F5FE 50%, #EEF0F3 75%);
+  background-size: 200% 100%;
+  animation: tw-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.tw-skeleton-circle {
+  border-radius: 50%;
+}
+
+/* ===== EMPTY STATES ===== */
+
+.tw-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.tw-empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #F3ECFE, #E8F0FE);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.tw-empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3A4456;
+  margin: 0 0 8px;
+}
+
+.tw-empty-desc {
+  font-size: 14px;
+  color: #8A93A3;
+  max-width: 300px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===== STATUS BADGE PULSE ===== */
+
+.tw-pulse {
+  animation: tw-pulse-dot 2s ease-in-out infinite;
+}
+
+/* ===== HERO MESH GRADIENT ===== */
+
+.tw-hero-mesh {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(123, 47, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(85, 96, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    #F9FAFB;
+}

@@ -186,7 +186,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 18 }}>
         {stats.map((s, i) => (
-          <div key={i} style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '17px 18px', animation: 'pop .3s both' }}>
+          <div key={i} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '17px 18px', animation: 'pop .3s both' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{DIcon(s.icon, { size: 20, color: s.color })}</div>
               {s.delta && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0E8A48', background: '#E4F5EA', padding: '3px 8px', borderRadius: 8 }}>{s.delta}</span>}
@@ -199,7 +199,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
 
       {/* Chart + Side card */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 16, marginBottom: 18 }}>
-        <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '20px 22px' }}>
+        <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{chartTitle}</div>
@@ -219,7 +219,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '18px 18px 6px' }}>
+        <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '18px 18px 6px' }}>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{sideCard.title}</div>
           {sideCard.items.map((it, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', borderBottom: '1px solid #F1F2F5' }}>
@@ -229,14 +229,14 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{it.t1}</div>
                 <div style={{ fontSize: 12.5, color: '#8A93A3', marginTop: 1 }}>{it.t2}</div>
               </div>
-              <button style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#7B2FF6', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}>{it.cta}</button>
+              <button className="tw-btn-primary" style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#7B2FF6', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}>{it.cta}</button>
             </div>
           ))}
         </div>
       </div>
 
       {/* Activity Feed */}
-      <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '18px 22px 8px' }}>
+      <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '18px 22px 8px' }}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>פעילות אחרונה</div>
         {feed.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F4F5F7' }}>

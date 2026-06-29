@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import { SkeletonChat } from '@/components/Skeleton';
 import { DashRole, avatarGrad, initial } from '@/types/dashboard';
 import { auth, db } from '@/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp, or } from 'firebase/firestore';
@@ -152,8 +153,14 @@ const ChatPage: React.FC<Props> = ({ role }) => {
 
   if (loading) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 16, color: '#8A93A3' }}>טוען הודעות...</div>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ width: 310, flexShrink: 0, borderLeft: '1px solid #EAECEF', background: '#fff' }}>
+          <div style={{ padding: '18px 18px 12px', borderBottom: '1px solid #F1F2F5' }}>
+            <div style={{ fontSize: 17, fontWeight: 800 }}>הודעות</div>
+          </div>
+          <SkeletonChat />
+        </div>
+        <div style={{ flex: 1 }} />
       </div>
     );
   }
@@ -167,12 +174,14 @@ const ChatPage: React.FC<Props> = ({ role }) => {
         </div>
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {conversations.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ marginBottom: 10 }}>{DIcon('chat', { size: 36, color: '#C8CDD7' })}</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#4A576E', marginBottom: 4 }}>אין הודעות עדיין</div>
-              <div style={{ fontSize: 13, color: '#8A93A3' }}>
-                {role === 'teen' ? 'שלח הודעה למעסיק דרך דף המשרה' : 'הודעות ממועמדים יופיעו כאן'}
+            <div className="tw-empty-state" style={{ padding: '40px 20px' }}>
+              <div className="tw-empty-icon">
+                {DIcon('chat', { size: 28, color: '#7B2FF6' })}
               </div>
+              <h3 className="tw-empty-title" style={{ fontSize: 15 }}>אין הודעות עדיין</h3>
+              <p className="tw-empty-desc" style={{ fontSize: 13 }}>
+                {role === 'teen' ? 'שלח הודעה למעסיק דרך דף המשרה' : 'הודעות ממועמדים יופיעו כאן'}
+              </p>
             </div>
           ) : (
             conversations.map(cv => (
@@ -234,17 +243,19 @@ const ChatPage: React.FC<Props> = ({ role }) => {
                   placeholder="כתוב/כתבי הודעה..."
                   style={{ flex: 1, border: '1px solid #E6E8ED', borderRadius: 12, padding: '12px 15px', outline: 'none', fontFamily: 'inherit', fontSize: 14, background: '#F8F9FB' }}
                 />
-                <button onClick={send} style={{ width: 46, height: 46, borderRadius: 12, border: 'none', background: '#7B2FF6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <button className="tw-btn-primary" onClick={send} style={{ width: 46, height: 46, borderRadius: 12, border: 'none', background: '#7B2FF6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                   {DIcon('send', { size: 19, color: '#fff' })}
                 </button>
               </div>
             )}
           </>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-            <div>{DIcon('chat', { size: 48, color: '#C8CDD7' })}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#4A576E' }}>אין שיחות פעילות</div>
-            <div style={{ fontSize: 14, color: '#8A93A3' }}>בחר שיחה מהרשימה או התחל שיחה חדשה</div>
+          <div className="tw-empty-state" style={{ flex: 1, justifyContent: 'center' }}>
+            <div className="tw-empty-icon">
+              {DIcon('chat', { size: 32, color: '#7B2FF6' })}
+            </div>
+            <h3 className="tw-empty-title">אין שיחות פעילות</h3>
+            <p className="tw-empty-desc">בחר שיחה מהרשימה או התחל שיחה חדשה</p>
           </div>
         )}
       </div>

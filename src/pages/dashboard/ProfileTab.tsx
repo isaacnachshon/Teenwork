@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import { SkeletonProfile } from '@/components/Skeleton';
 import { DashRole, avatarGrad, initial } from '@/types/dashboard';
 import { auth, db, storage } from '@/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -152,11 +153,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
   };
 
   if (loading) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 16, color: '#8A93A3' }}>טוען פרופיל...</div>
-      </div>
-    );
+    return <SkeletonProfile />;
   }
 
   if (!userData) {
@@ -190,7 +187,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
           </div>
         </div>
         {!editing && (
-          <button onClick={() => setEditing(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 22px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(123,47,246,.25)' }}>
+          <button className="tw-btn-primary" onClick={() => setEditing(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 22px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(123,47,246,.25)' }}>
             {DIcon('user', { size: 18, color: '#fff' })}עריכת פרופיל
           </button>
         )}
@@ -225,7 +222,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
       </div>
 
       {/* Completion Bar */}
-      <div style={{ background: '#fff', borderRadius: 16, padding: '18px 22px', marginBottom: 20, border: '1px solid #EEF0F3' }}>
+      <div className="tw-card" style={{ background: '#fff', borderRadius: 16, padding: '18px 22px', marginBottom: 20, border: '1px solid #EEF0F3' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 18 }}>{completionMsg.emoji}</span>
@@ -279,7 +276,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }} placeholder="למשל: אנגלית, שירות לקוחות..." style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #E3E6EC', fontFamily: 'inherit', fontSize: 14, outline: 'none', background: '#FAFBFC' }} />
-                  <button onClick={addSkill} style={{ padding: '10px 18px', borderRadius: 10, background: '#7B2FF6', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>הוסף</button>
+                  <button className="tw-btn-primary" onClick={addSkill} style={{ padding: '10px 18px', borderRadius: 10, background: '#7B2FF6', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>הוסף</button>
                 </div>
               </SectionCard>
 
@@ -318,10 +315,10 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: 12, marginTop: 8, position: 'sticky', bottom: 20, background: 'linear-gradient(0deg, #F5F6F8 60%, transparent)', padding: '16px 0 4px' }}>
-            <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px 22px', borderRadius: 14, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1, boxShadow: '0 4px 14px rgba(123,47,246,.25)' }}>
+            <button className="tw-btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px 22px', borderRadius: 14, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1, boxShadow: '0 4px 14px rgba(123,47,246,.25)' }}>
               {saving ? 'שומר...' : 'שמור שינויים'}
             </button>
-            <button onClick={() => { setEditing(false); setForm(userData); }} style={{ padding: '14px 22px', borderRadius: 14, background: '#fff', color: '#475067', border: '1px solid #E3E6EC', fontFamily: 'inherit', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
+            <button className="tw-btn-ghost" onClick={() => { setEditing(false); setForm(userData); }} style={{ padding: '14px 22px', borderRadius: 14, background: '#fff', color: '#475067', border: '1px solid #E3E6EC', fontFamily: 'inherit', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
               ביטול
             </button>
           </div>
@@ -393,7 +390,7 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
 };
 
 const SectionCard: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
-  <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 18, padding: '22px 24px', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
+  <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 18, padding: '22px 24px', boxShadow: '0 1px 3px rgba(0,0,0,.03)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
       <div style={{ width: 34, height: 34, borderRadius: 10, background: '#F3ECFE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {DIcon(icon, { size: 17, color: '#7B2FF6' })}

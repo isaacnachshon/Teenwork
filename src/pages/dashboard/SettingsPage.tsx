@@ -63,7 +63,7 @@ const SettingsPage: React.FC<Props> = ({ role, onLogout }) => {
       </div>
 
       {/* Account Info */}
-      <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: 24, marginBottom: 20 }}>
+      <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           {DIcon('user', { size: 20, color: '#7B2FF6' })}
           פרטי חשבון
@@ -78,7 +78,7 @@ const SettingsPage: React.FC<Props> = ({ role, onLogout }) => {
 
       {/* Change Password */}
       {isPasswordUser && (
-        <div style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: 24, marginBottom: 20 }}>
+        <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: 24, marginBottom: 20 }}>
           <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             {DIcon('shield', { size: 20, color: '#7B2FF6' })}
             שינוי סיסמה
@@ -89,7 +89,7 @@ const SettingsPage: React.FC<Props> = ({ role, onLogout }) => {
             <PasswordField label="אימות סיסמה חדשה" value={confirmPassword} onChange={setConfirmPassword} />
             {passwordError && <div style={{ color: '#C8364A', fontSize: 13, fontWeight: 600 }}>{passwordError}</div>}
             {passwordSuccess && <div style={{ color: '#0E8A48', fontSize: 13, fontWeight: 600 }}>{passwordSuccess}</div>}
-            <button type="submit" disabled={changingPassword} style={{ padding: '12px 18px', borderRadius: 12, background: '#7B2FF6', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: changingPassword ? 0.6 : 1, alignSelf: 'flex-start' }}>
+            <button type="submit" className="tw-btn-primary" disabled={changingPassword} style={{ padding: '12px 18px', borderRadius: 12, background: '#7B2FF6', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: changingPassword ? 0.6 : 1, alignSelf: 'flex-start' }}>
               {changingPassword ? 'משנה...' : 'שנה סיסמה'}
             </button>
           </form>
@@ -97,7 +97,7 @@ const SettingsPage: React.FC<Props> = ({ role, onLogout }) => {
       )}
 
       {/* Danger Zone */}
-      <div style={{ background: '#fff', border: '1px solid #FBE7EA', borderRadius: 16, padding: 24 }}>
+      <div className="tw-card" style={{ background: '#fff', border: '1px solid #FBE7EA', borderRadius: 16, padding: 24 }}>
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, color: '#C8364A' }}>
           {DIcon('alert', { size: 20, color: '#C8364A' })}
           אזור רגיש

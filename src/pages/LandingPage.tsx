@@ -105,7 +105,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
 
             <main>
                 {/* Hero Section */}
-                <section className="text-center py-20 px-4 bg-gray-50">
+                <section className="text-center py-20 px-4 tw-hero-mesh">
                     <div className="container mx-auto">
                         <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 text-sm font-bold px-4 py-2 rounded-full mb-6 animate-in fade-in-0 duration-500">
                             <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DIcon } from '@/components/DashboardIcons';
+import { Skeleton } from '@/components/Skeleton';
 import { NotificationService } from '@/services/NotificationService';
 import type { NotificationDoc } from '@/services/NotificationService';
 
@@ -87,12 +88,24 @@ const NotificationsPanel: React.FC<Props> = ({ userId, isOpen, onClose }) => {
 
       <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         {loading ? (
-          <div style={{ padding: 30, textAlign: 'center', color: '#8A93A3', fontSize: 14 }}>טוען...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ padding: '12px 18px', borderBottom: '1px solid #F4F5F7', display: 'flex', gap: 12 }}>
+                <Skeleton width={34} height={34} style={{ borderRadius: 10, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width={160} height={13} style={{ marginBottom: 6 }} />
+                  <Skeleton width={100} height={11} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : notifications.length === 0 ? (
-          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <div style={{ marginBottom: 10 }}>{DIcon('bell', { size: 32, color: '#C8CDD7' })}</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#4A576E' }}>אין התראות</div>
-            <div style={{ fontSize: 13, color: '#8A93A3', marginTop: 4 }}>התראות חדשות יופיעו כאן</div>
+          <div className="tw-empty-state" style={{ padding: '40px 20px' }}>
+            <div className="tw-empty-icon" style={{ width: 56, height: 56, borderRadius: 16 }}>
+              {DIcon('bell', { size: 24, color: '#7B2FF6' })}
+            </div>
+            <h3 className="tw-empty-title" style={{ fontSize: 14 }}>אין התראות</h3>
+            <p className="tw-empty-desc" style={{ fontSize: 13 }}>התראות חדשות יופיעו כאן</p>
           </div>
         ) : (
           notifications.map(n => {
