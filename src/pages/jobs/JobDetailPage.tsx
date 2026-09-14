@@ -3,6 +3,7 @@ import type { Job } from '@/types';
 import { MapPinIcon, DollarSignIcon, ClockIcon, CalendarIcon, BriefcaseIcon, ChevronLeftIcon, RouteIcon } from '@/components/icons';
 import { auth, db } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { calcAge, isYouthAge, YOUTH_AGE_ERROR } from '@/utils/age';
 
 interface JobDetailPageProps {
     job: Job;
@@ -26,18 +27,37 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
 const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation }) => {
     const [distanceInfo, setDistanceInfo] = useState<{ text: string; link?: string } | null>(null);
     const [applyStatus, setApplyStatus] = useState<'idle' | 'submitting' | 'applied' | 'error'>('idle');
+    const [applyError, setApplyError] = useState('');
 
     const handleApply = async () => {
         const user = auth.currentUser;
         if (!user) {
             setApplyStatus('error');
+            setApplyError('יש להתחבר כדי להגיש מועמדות.');
             return;
         }
 
         setApplyStatus('submitting');
+        setApplyError('');
         try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const userData = userDoc.exists() ? userDoc.data() : {};
+
+            if (userData.parentalConsentStatus !== 'approved') {
+                setApplyStatus('error');
+                setApplyError('נדרש אישור הורים לפני הגשת מועמדות.');
+                return;
+            }
+
+            if (!userData.birthDate || !isYouthAge(userData.birthDate)) {
+                setApplyStatus('error');
+                setApplyError(YOUTH_AGE_ERROR);
+                return;
+            }
+
+            // Double-check age locally as well
+            void calcAge(userData.birthDate);
+
             await addDoc(collection(db, 'applications'), {
                 jobId: job.id,
                 jobTitle: job.title,
@@ -52,6 +72,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
         } catch (error) {
             console.error('Error submitting application:', error);
             setApplyStatus('error');
+            setApplyError('שגיאה בשליחת המועמדות. נסה שוב.');
         }
     };
 
@@ -148,7 +169,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                             {applyStatus === 'submitting' ? 'שולח מועמדות...' : applyStatus === 'applied' ? 'המועמדות נשלחה ✓' : 'הגש מועמדות עכשיו'}
                          </button>
                          {applyStatus === 'error' && (
-                            <p className="mt-2 text-sm text-red-100">שגיאה בשליחת המועמדות. נסה שוב.</p>
+                            <p className="mt-2 text-sm text-red-100">{applyError || 'שגיאה בשליחת המועמדות. נסה שוב.'}</p>
                          )}
                      </div>
                 </div>

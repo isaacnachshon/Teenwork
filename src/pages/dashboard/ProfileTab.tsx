@@ -27,6 +27,8 @@ interface UserData {
   cvUrl?: string;
   cvFileName?: string;
   availability?: string[];
+  idNumber?: string;
+  address?: string;
 }
 
 const COMPLETION_MSGS = [
@@ -68,6 +70,11 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
     try {
       const updates: Record<string, any> = { updatedAt: serverTimestamp() };
       if (role === 'teen') {
+        if (!form.birthDate) {
+          alert('תאריך לידה הוא שדה חובה.');
+          setSaving(false);
+          return;
+        }
         updates.name = form.name || '';
         updates.phone = form.phone || '';
         updates.city = form.city || '';
@@ -76,6 +83,8 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
         updates.bio = form.bio || '';
         updates.skills = form.skills || [];
         updates.availability = form.availability || [];
+        updates.idNumber = form.idNumber || '';
+        updates.address = form.address || '';
       } else if (role === 'employer') {
         updates.companyName = form.companyName || '';
         updates.phone = form.phone || '';
@@ -258,6 +267,20 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
 
           {role === 'teen' && (
             <>
+              {/* Form 101 prep */}
+              <SectionCard title="הכנה לטופס 101" icon="briefcase">
+                <p style={{ fontSize: 13, color: '#6B7689', marginBottom: 14, lineHeight: 1.6 }}>
+                  לפני תחילת עבודה יש למלא טופס 101 אצל המעסיק ולהביא תעודת זהות + ספח.
+                  מלאו כאן פרטים מראש כדי להאיץ את התהליך.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <Field label="מספר ת״ז" value={form.idNumber || ''} onChange={v => setForm(p => ({ ...p, idNumber: v }))} placeholder="000000000" />
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <Field label="כתובת מלאה" value={form.address || ''} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="רחוב, מספר בית, עיר" />
+                  </div>
+                </div>
+              </SectionCard>
+
               {/* About */}
               <SectionCard title="קצת עליי" icon="chat">
                 <textarea value={form.bio || ''} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} placeholder="ספר/י על עצמך — מה את/ה אוהב/ת לעשות, מה מאפיין אותך..." style={{ width: '100%', minHeight: 100, padding: '14px 16px', borderRadius: 12, border: '1px solid #E3E6EC', fontFamily: 'inherit', fontSize: 14, resize: 'vertical', outline: 'none', lineHeight: 1.6, background: '#FAFBFC' }} />
@@ -344,6 +367,23 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
               )}
             </div>
           </SectionCard>
+
+          {role === 'teen' && (
+            <SectionCard title="הכנה לטופס 101" icon="briefcase">
+              <p style={{ fontSize: 13, color: '#6B7689', marginBottom: 12, lineHeight: 1.6 }}>
+                חובה למלא אצל המעסיק ולהביא ת״ז + ספח לפני תחילת עבודה.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <InfoField icon="user" label="מספר ת״ז" value={userData.idNumber} />
+                <InfoField icon="user" label="כתובת" value={userData.address} />
+              </div>
+              {!(userData.idNumber && userData.address) && (
+                <p style={{ marginTop: 12, fontSize: 13, color: '#B45309', fontWeight: 600 }}>
+                  השלימו פרטי 101 לפני תחילת עבודה.
+                </p>
+              )}
+            </SectionCard>
+          )}
 
           {role === 'teen' && userData.bio && (
             <SectionCard title="קצת עליי" icon="chat">

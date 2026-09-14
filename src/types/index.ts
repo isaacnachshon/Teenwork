@@ -16,6 +16,8 @@ export interface UserProfile {
   updatedAt: Timestamp;
   lastLogin: Timestamp;
   status: 'active' | 'disabled';
+  termsAcceptedAt?: Timestamp | unknown;
+  termsVersion?: string;
 }
 
 export interface TeenProfile extends UserProfile {

@@ -12,6 +12,8 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import LegalModal from '@/components/LegalModal';
+import { TERMS_VERSION } from '@/utils/age';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -35,6 +37,8 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
     const [resetSuccess, setResetSuccess] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
     useEffect(() => {
         return () => {
@@ -100,6 +104,10 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
             setError('הסיסמאות אינן תואמות.');
             return;
         }
+        if (!acceptedTerms) {
+            setError('יש לאשר את תקנון השימוש ומדיניות הפרטיות.');
+            return;
+        }
         setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -131,6 +139,8 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                     birthDate: '',
                     profileCompleted: false,
                     status: 'active',
+                    termsAcceptedAt: serverTimestamp(),
+                    termsVersion: TERMS_VERSION,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     lastLogin: serverTimestamp(),
@@ -181,6 +191,10 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
 
     const handleGoogleAuth = async () => {
         setError('');
+        if (authMode === 'signup' && !acceptedTerms) {
+            setError('יש לאשר את תקנון השימוש ומדיניות הפרטיות.');
+            return;
+        }
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -192,7 +206,7 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
             const userDoc = await getDoc(userDocRef);
 
             if (!userDoc.exists()) {
-                await setDoc(userDocRef, {
+                const googleDoc: Record<string, unknown> = {
                     uid: user.uid,
                     displayName: user.displayName || '',
                     email: user.email || '',
@@ -208,7 +222,12 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     lastLogin: serverTimestamp(),
-                });
+                };
+                if (authMode === 'signup' && acceptedTerms) {
+                    googleDoc.termsAcceptedAt = serverTimestamp();
+                    googleDoc.termsVersion = TERMS_VERSION;
+                }
+                await setDoc(userDocRef, googleDoc);
             } else {
                 const userData = userDoc.data();
                 if (userData.role !== 'employer') {
@@ -302,6 +321,25 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">אימות סיסמה</label>
                             <input id="confirmPassword" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
                         </div>
+                        <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={acceptedTerms}
+                                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                required
+                            />
+                            <span>
+                                קראתי ואני מסכים/ה ל
+                                <button type="button" onClick={() => setLegalModal('terms')} className="text-blue-600 hover:underline mx-1 font-semibold">
+                                    תקנון השימוש
+                                </button>
+                                ו־
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mx-1 font-semibold">
+                                    מדיניות הפרטיות
+                                </a>
+                            </span>
+                        </label>
                         {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
                         <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isLoading ? 'יוצר חשבון...' : 'הרשמה'}
@@ -329,6 +367,9 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                     <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-blue-600 transition-colors mt-2">← חזרה לדף הראשי</button>
                 )}
             </div>
+            {legalModal && (
+                <LegalModal initialTab={legalModal} onClose={() => setLegalModal(null)} />
+            )}
         </div>
     );
 };

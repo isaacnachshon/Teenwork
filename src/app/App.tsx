@@ -7,7 +7,10 @@ import LandingPage from '@/pages/LandingPage';
 import AboutPage from '@/pages/AboutPage';
 import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
 import ParentApprovalPage from '@/pages/auth/ParentApprovalPage';
+import WaitingForParentApproval from '@/pages/auth/WaitingForParentApproval';
+import TeenComplianceCompletion from '@/pages/auth/TeenComplianceCompletion';
 import { useAuth } from '@/hooks/useAuth';
+import type { TeenProfile } from '@/types';
 
 type View = 'landing' | 'about' | 'teen' | 'employer' | 'admin';
 
@@ -29,6 +32,8 @@ const App: React.FC = () => {
     }
   }, [role, user, loading]);
 
+  const teenProfile = profile as TeenProfile | null;
+
   const dashboard = useMemo(() => {
     switch (view) {
       case 'about':
@@ -41,6 +46,12 @@ const App: React.FC = () => {
         if (role === 'teen' && user) {
           if (!user.emailVerified) {
             return <EmailVerificationPage user={user} />;
+          }
+          if (!teenProfile?.birthDate) {
+            return <TeenComplianceCompletion user={user} />;
+          }
+          if (teenProfile.parentalConsentStatus !== 'approved') {
+            return <WaitingForParentApproval user={user} />;
           }
           return <DashboardLayout role="teen" userName={userName} onLogout={logout} />;
         }
@@ -59,7 +70,7 @@ const App: React.FC = () => {
       default:
         return <LandingPage onRoleSelect={(v) => setView(v as View)} />;
     }
-  }, [view, role, user, userName, logout]);
+  }, [view, role, user, userName, logout, teenProfile]);
 
   if (approvalToken) {
     return <ParentApprovalPage token={approvalToken} />;

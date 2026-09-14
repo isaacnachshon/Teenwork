@@ -13,12 +13,10 @@ import {
     StarOutlineIcon,
     ClipboardListIcon,
     WalletIcon,
-    LinkedinIcon,
-    InstagramIcon,
-    FacebookIcon
 } from '@/components/icons';
 
 import LegalModal from '@/components/LegalModal';
+import RightsInfoModal from '@/components/RightsInfoModal';
 
 interface LandingPageProps {
     onRoleSelect: (role: 'teen' | 'employer' | 'admin' | 'about') => void;
@@ -84,6 +82,7 @@ const TestimonialCard: React.FC<{ testimonial: typeof testimonials[0] }> = ({ te
 const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
     const [howItWorksView, setHowItWorksView] = useState<'teen' | 'employer'>('teen');
     const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
+    const [showRightsModal, setShowRightsModal] = useState(false);
 
     return (
         <div className="bg-white text-gray-800 font-sans">
@@ -95,6 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                         <a href="#how-it-works" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">איך זה עובד</a>
                         <a href="#testimonials" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">המלצות</a>
                         <button onClick={() => onRoleSelect('about')} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">אודות</button>
+                        <button onClick={() => setShowRightsModal(true)} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">זכויות נוער</button>
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={() => onRoleSelect('teen')} className="font-bold text-purple-600 hover:opacity-80 transition-opacity">כניסה</button>
@@ -239,9 +239,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                         <h3 className="font-bold mb-3">ניווט מהיר</h3>
                         <ul className="space-y-2 text-sm">
                             <li><button onClick={() => onRoleSelect('about')} className="text-gray-400 hover:text-white text-right">אודות</button></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white">חיפוש עבודות</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white">למעסיקים</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white">צור קשר</a></li>
+                            <li><button onClick={() => onRoleSelect('teen')} className="text-gray-400 hover:text-white text-right">חיפוש עבודות</button></li>
+                            <li><button onClick={() => onRoleSelect('employer')} className="text-gray-400 hover:text-white text-right">למעסיקים</button></li>
+                            <li><button onClick={() => setShowRightsModal(true)} className="text-gray-400 hover:text-white text-right">זכויות נוער בעבודה</button></li>
+                            <li><a href="mailto:hello@teensworks.com" className="text-gray-400 hover:text-white">צור קשר</a></li>
                             <li><button onClick={() => onRoleSelect('admin')} className="text-gray-400 hover:text-white text-left text-xs mt-4 block">כניסת מנהלים</button></li>
                         </ul>
                     </div>
@@ -253,12 +254,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                         </ul>
                     </div>
                     <div>
-                        <h3 className="font-bold mb-3">עקבו אחרינו</h3>
-                        <div className="flex gap-4">
-                            <a href="#" aria-label="לינקדאין" className="text-gray-400 hover:text-white"><LinkedinIcon className="w-6 h-6" aria-hidden="true" /></a>
-                            <a href="#" aria-label="אינסטגרם" className="text-gray-400 hover:text-white"><InstagramIcon className="w-6 h-6" aria-hidden="true" /></a>
-                            <a href="#" aria-label="פייסבוק" className="text-gray-400 hover:text-white"><FacebookIcon className="w-6 h-6" aria-hidden="true" /></a>
-                        </div>
+                        <h3 className="font-bold mb-3">משפטי נוסף</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><button onClick={() => setShowRightsModal(true)} className="text-gray-400 hover:text-white text-right">זכויות נוער ושכר מינימום</button></li>
+                        </ul>
                     </div>
                 </div>
                 <div className="container mx-auto mt-8 pt-6 border-t border-gray-700 text-center text-sm text-gray-500">
@@ -268,6 +267,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
 
             {legalModal && (
                 <LegalModal initialTab={legalModal} onClose={() => setLegalModal(null)} />
+            )}
+            {showRightsModal && (
+                <RightsInfoModal isOpen={showRightsModal} onClose={() => setShowRightsModal(false)} />
             )}
         </div>
     );

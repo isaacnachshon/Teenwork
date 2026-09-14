@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserIcon, GoogleIcon, PencilIcon } from '@/components/icons';
 import { auth, db, storage } from '@/firebase';
@@ -13,6 +12,8 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import LegalModal from '@/components/LegalModal';
+import { calcAge, isYouthAge, YOUTH_AGE_ERROR, TERMS_VERSION } from '@/utils/age';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -28,14 +29,17 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [fullName, setFullName] = useState('');
+    const [birthDate, setBirthDate] = useState('');
     const [profileImage, setProfileImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+    const [parentName, setParentName] = useState('');
     const [parentEmail, setParentEmail] = useState('');
     const [parentPhone, setParentPhone] = useState('');
-    const [showParentFields, setShowParentFields] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
     const [resetSuccess, setResetSuccess] = useState('');
@@ -62,6 +66,33 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             setImagePreview(URL.createObjectURL(file));
             setError('');
         }
+    };
+
+    const validateYouthCompliance = (): string | null => {
+        if (!birthDate) return 'נא למלא תאריך לידה.';
+        if (!isYouthAge(birthDate)) return YOUTH_AGE_ERROR;
+        if (!parentName.trim() || !parentEmail.trim() || !parentPhone.trim()) {
+            return 'נא למלא שם, אימייל וטלפון של הורה / אפוטרופוס.';
+        }
+        if (!acceptedTerms) {
+            return 'יש לאשר את תקנון השימוש ומדיניות הפרטיות.';
+        }
+        return null;
+    };
+
+    const buildParentalApproval = async (teenUid: string, teenName: string, teenEmail: string | null) => {
+        const approvalRef = doc(collection(db, 'parentalApprovals'));
+        await setDoc(approvalRef, {
+            token: approvalRef.id,
+            teenUid,
+            teenName,
+            teenEmail,
+            parentName: parentName.trim(),
+            parentEmail: parentEmail.trim(),
+            parentPhone: parentPhone.trim(),
+            status: 'pending',
+            createdAt: serverTimestamp(),
+        });
     };
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -100,6 +131,11 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             setError('הסיסמאות אינן תואמות.');
             return;
         }
+        const complianceError = validateYouthCompliance();
+        if (complianceError) {
+            setError(complianceError);
+            return;
+        }
         setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -120,6 +156,7 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             }
 
             try {
+                const age = calcAge(birthDate);
                 const userDocData: Record<string, any> = {
                     uid: user.uid,
                     displayName: fullName,
@@ -129,36 +166,25 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                     role: 'teen',
                     phone: '',
                     city: '',
-                    birthDate: '',
+                    birthDate,
+                    age,
                     profileCompleted: false,
                     status: 'active',
                     profileImageUrl,
                     skills: [],
+                    parentName: parentName.trim(),
+                    parentEmail: parentEmail.trim(),
+                    parentPhone: parentPhone.trim(),
+                    parentalConsentStatus: 'pending',
+                    termsAcceptedAt: serverTimestamp(),
+                    termsVersion: TERMS_VERSION,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     lastLogin: serverTimestamp(),
                 };
 
-                if (parentEmail.trim()) userDocData.parentEmail = parentEmail;
-                if (parentPhone.trim()) userDocData.parentPhone = parentPhone;
-
                 await setDoc(doc(db, 'users', user.uid), userDocData);
-
-                if (parentEmail.trim() && parentPhone.trim()) {
-                    const approvalRef = doc(collection(db, 'parentalApprovals'));
-                    await setDoc(approvalRef, {
-                        token: approvalRef.id,
-                        teenUid: user.uid,
-                        teenName: fullName,
-                        teenEmail: user.email,
-                        parentEmail,
-                        parentPhone,
-                        status: 'pending',
-                        createdAt: serverTimestamp(),
-                    });
-                    userDocData.parentalConsentStatus = 'pending';
-                    await setDoc(doc(db, 'users', user.uid), { parentalConsentStatus: 'pending' }, { merge: true });
-                }
+                await buildParentalApproval(user.uid, fullName, user.email);
             } catch (firestoreErr) {
                 if (profileImageUrl) {
                     try { await deleteObject(ref(storage, `profileImages/teens/${user.uid}`)); } catch (_) {}
@@ -205,6 +231,18 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
 
     const handleGoogleLogin = async () => {
         setError('');
+        // New Google signups must complete youth compliance fields first (same gate as email).
+        if (authMode === 'signup') {
+            const complianceError = validateYouthCompliance();
+            if (complianceError) {
+                setError(complianceError);
+                return;
+            }
+            if (!fullName.trim()) {
+                setError('נא למלא שם מלא לפני הרשמה עם גוגל.');
+                return;
+            }
+        }
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -216,29 +254,81 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             const userDoc = await getDoc(userDocRef);
 
             if (!userDoc.exists()) {
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    displayName: user.displayName || '',
-                    name: user.displayName || '',
-                    email: user.email || '',
-                    photoURL: user.photoURL || '',
-                    profileImageUrl: user.photoURL || '',
-                    role: 'teen',
-                    phone: '',
-                    city: '',
-                    birthDate: '',
-                    profileCompleted: false,
-                    status: 'active',
-                    skills: [],
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                    lastLogin: serverTimestamp(),
-                });
+                if (authMode !== 'signup') {
+                    // Login path created a brand-new account — require compliance via App gate.
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        displayName: user.displayName || '',
+                        name: user.displayName || '',
+                        email: user.email || '',
+                        photoURL: user.photoURL || '',
+                        profileImageUrl: user.photoURL || '',
+                        role: 'teen',
+                        phone: '',
+                        city: '',
+                        birthDate: '',
+                        profileCompleted: false,
+                        status: 'active',
+                        skills: [],
+                        parentalConsentStatus: 'pending',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        lastLogin: serverTimestamp(),
+                    });
+                } else {
+                    const age = calcAge(birthDate);
+                    const display = fullName.trim() || user.displayName || '';
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        displayName: display,
+                        name: display,
+                        email: user.email || '',
+                        photoURL: user.photoURL || '',
+                        profileImageUrl: user.photoURL || '',
+                        role: 'teen',
+                        phone: '',
+                        city: '',
+                        birthDate,
+                        age,
+                        profileCompleted: false,
+                        status: 'active',
+                        skills: [],
+                        parentName: parentName.trim(),
+                        parentEmail: parentEmail.trim(),
+                        parentPhone: parentPhone.trim(),
+                        parentalConsentStatus: 'pending',
+                        termsAcceptedAt: serverTimestamp(),
+                        termsVersion: TERMS_VERSION,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        lastLogin: serverTimestamp(),
+                    });
+                    await buildParentalApproval(user.uid, display, user.email);
+                }
             } else {
                 const userData = userDoc.data();
                 if (userData.role !== 'teen') {
                     await auth.signOut();
                     setError('חשבון זה רשום כתפקיד אחר.');
+                    return;
+                }
+                // Existing teen without DOB: if signup form filled, complete now.
+                if (!userData.birthDate && authMode === 'signup') {
+                    const age = calcAge(birthDate);
+                    await setDoc(userDocRef, {
+                        birthDate,
+                        age,
+                        parentName: parentName.trim(),
+                        parentEmail: parentEmail.trim(),
+                        parentPhone: parentPhone.trim(),
+                        parentalConsentStatus: userData.parentalConsentStatus || 'pending',
+                        termsAcceptedAt: serverTimestamp(),
+                        termsVersion: TERMS_VERSION,
+                        updatedAt: serverTimestamp(),
+                    }, { merge: true });
+                    if (userData.parentalConsentStatus !== 'approved') {
+                        await buildParentalApproval(user.uid, userData.name || fullName || user.displayName || '', user.email);
+                    }
                 }
             }
         } catch (err: any) {
@@ -252,6 +342,28 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
             setIsGoogleLoading(false);
         }
     };
+
+    const termsCheckbox = (
+        <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                required
+            />
+            <span>
+                קראתי ואני מסכים/ה ל
+                <button type="button" onClick={() => setLegalModal('terms')} className="text-purple-600 hover:underline mx-1 font-semibold">
+                    תקנון השימוש
+                </button>
+                ו־
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline mx-1 font-semibold">
+                    מדיניות הפרטיות
+                </a>
+            </span>
+        </label>
+    );
 
     return (
         <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-gray-50">
@@ -316,6 +428,11 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                             <input id="fullName" name="fullName" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="ישראל ישראלי" />
                         </div>
                         <div>
+                            <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">תאריך לידה</label>
+                            <input id="birthDate" name="birthDate" type="date" required value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                            <p className="text-xs text-gray-400 mt-1">הפלטפורמה מיועדת לגילאי 14–18 בלבד</p>
+                        </div>
+                        <div>
                             <label htmlFor="email-signup" className="block text-sm font-medium text-gray-700">כתובת אימייל</label>
                             <input id="email-signup" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="your@email.com" />
                         </div>
@@ -327,29 +444,22 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">אימות סיסמה</label>
                             <input id="confirmPassword" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="********" />
                         </div>
-                        <div className="border-t border-gray-200 pt-4 mt-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowParentFields(!showParentFields)}
-                                className="w-full text-sm font-medium text-gray-700 text-center hover:text-purple-600 transition-colors flex items-center justify-center gap-1"
-                            >
-                                <span>פרטי הורה / אפוטרופוס (אופציונלי)</span>
-                                <span className="text-xs">{showParentFields ? '▲' : '▼'}</span>
-                            </button>
-                            <p className="text-xs text-gray-400 text-center mt-1">ניתן להוסיף גם מאוחר יותר דרך הפרופיל</p>
-                            {showParentFields && (
-                                <div className="space-y-3 mt-3">
-                                    <div>
-                                        <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700">אימייל הורה</label>
-                                        <input id="parentEmail" name="parentEmail" type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="parent@email.com" />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">טלפון הורה</label>
-                                        <input id="parentPhone" name="parentPhone" type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="05X-XXXXXXX" dir="ltr" />
-                                    </div>
-                                </div>
-                            )}
+                        <div className="border-t border-gray-200 pt-4 mt-2 space-y-3">
+                            <p className="text-sm font-semibold text-gray-800 text-center">פרטי הורה / אפוטרופוס (חובה)</p>
+                            <div>
+                                <label htmlFor="parentName" className="block text-sm font-medium text-gray-700">שם הורה</label>
+                                <input id="parentName" name="parentName" type="text" required value={parentName} onChange={(e) => setParentName(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="שם מלא של ההורה" />
+                            </div>
+                            <div>
+                                <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700">אימייל הורה</label>
+                                <input id="parentEmail" name="parentEmail" type="email" required value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="parent@email.com" />
+                            </div>
+                            <div>
+                                <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">טלפון הורה</label>
+                                <input id="parentPhone" name="parentPhone" type="tel" required value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="05X-XXXXXXX" dir="ltr" />
+                            </div>
                         </div>
+                        {termsCheckbox}
                         {error && <p role="alert" className="text-sm text-red-600 text-center">{error}</p>}
                         <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isLoading ? 'יוצר חשבון...' : 'הרשמה'}
@@ -377,6 +487,9 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                     <button onClick={onBack} className="w-full text-center text-sm text-gray-500 hover:text-purple-600 transition-colors mt-2">← חזרה לדף הראשי</button>
                 )}
             </div>
+            {legalModal && (
+                <LegalModal initialTab={legalModal} onClose={() => setLegalModal(null)} />
+            )}
         </div>
     );
 };

@@ -47,12 +47,27 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
     }
 
+    function teenHasParentalApproval() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.parentalConsentStatus == 'approved';
+    }
+
     match /applications/{appId} {
       allow read: if isAdmin()
         || (isTeen() && resource.data.applicantId == request.auth.uid)
         || (isEmployer() && resource.data.employerId == request.auth.uid);
-      allow create: if isTeen() && request.resource.data.applicantId == request.auth.uid;
+      // Youth compliance: teens may only apply after parentalConsentStatus === 'approved'
+      allow create: if isTeen()
+        && request.resource.data.applicantId == request.auth.uid
+        && teenHasParentalApproval();
       allow update: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /parentalApprovals/{approvalId} {
+      // Parent approval links are opened without login (?approve=TOKEN)
+      allow read: if true;
+      allow create: if isTeen() && request.resource.data.teenUid == request.auth.uid;
+      allow update: if true;
       allow delete: if isAdmin();
     }
 
