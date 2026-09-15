@@ -11,13 +11,14 @@ test.describe('TeenWork Comprehensive E2E', () => {
         const loginButton = page.getByRole('button', { name: 'כניסה' });
         await expect(loginButton).toBeVisible();
         await loginButton.click();
-        // Teen login page should be visible
-        await expect(page.getByRole('button', { name: /נוער/i })).toBeVisible();
+        // Teen login page should be visible (login-mode subtitle is teen-specific)
+        await expect(page.getByText('שמחים לראות אותך שוב!')).toBeVisible();
 
         // Click "פרסם משרה" (on landing/header) -> employer login
         // After first click, we may be on teen login - go back to landing first
         await page.goto('/');
-        const publishJobButton = page.getByRole('button', { name: 'פרסם משרה' });
+        // exact:true — hero also has a button containing "פרסם משרה"; target the header CTA only
+        const publishJobButton = page.getByRole('button', { name: 'פרסם משרה', exact: true });
         await expect(publishJobButton).toBeVisible();
         await publishJobButton.click();
         // Employer login page should be visible
@@ -27,7 +28,8 @@ test.describe('TeenWork Comprehensive E2E', () => {
     test('Landing Page Elements', async ({ page }) => {
         // TEENWORK appears in multiple places; use .first() to avoid strict mode violation
         await expect(page.getByText('TEENWORK').first()).toBeVisible();
-        await expect(page.getByText('העבודה הראשונה שלך')).toBeVisible();
+        // Hero subtitle — stable product framing on the current landing page
+        await expect(page.getByText(/מוצאת לבני נוער/)).toBeVisible();
 
         // Check Footer Admin Link (in LandingPage)
         const footerAdminLink = page.getByRole('button', { name: /כניסת מנהלים/i });

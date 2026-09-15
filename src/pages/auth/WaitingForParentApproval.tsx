@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { auth, db } from '@/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ClockIcon, LogOutIcon, CheckCircleIcon } from '@/components/icons';
 
 interface WaitingForParentApprovalProps {
@@ -73,6 +73,38 @@ const WaitingForParentApproval: React.FC<WaitingForParentApprovalProps> = ({ use
         signOut(auth);
     };
 
+    const [requesting, setRequesting] = useState(false);
+    const [requestError, setRequestError] = useState('');
+
+    // Creates a fresh pending approval from the parent details on the user doc;
+    // the onParentalApprovalCreated Cloud Function flips the teen back to 'pending'.
+    const requestAgain = async () => {
+        setRequesting(true);
+        setRequestError('');
+        try {
+            const snap = await getDoc(doc(db, 'users', user.uid));
+            const data = snap.data() || {};
+            if (!data.parentEmail || !data.parentPhone) throw new Error('חסרים פרטי הורה בפרופיל.');
+            const approvalRef = doc(collection(db, 'parentalApprovals'));
+            await setDoc(approvalRef, {
+                token: approvalRef.id,
+                teenUid: user.uid,
+                teenName: data.name || user.displayName || '',
+                teenEmail: user.email,
+                parentName: data.parentName || '',
+                parentEmail: data.parentEmail,
+                parentPhone: data.parentPhone,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            });
+            setStatus('pending');
+        } catch (err: any) {
+            setRequestError(err?.message || 'הבקשה נכשלה. נסה שוב.');
+        } finally {
+            setRequesting(false);
+        }
+    };
+
     if (status === 'approved') {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
@@ -100,6 +132,14 @@ const WaitingForParentApproval: React.FC<WaitingForParentApprovalProps> = ({ use
                         <h1 className="text-2xl font-bold text-gray-800">ההורה דחה את הבקשה</h1>
                         <p className="mt-2 text-gray-600">ההורה/אפוטרופוס שלך דחה את בקשת ההרשמה. אנא פנה להורה שלך לפרטים נוספים.</p>
                     </div>
+                    <button
+                        onClick={requestAgain}
+                        disabled={requesting}
+                        className="w-full py-3 px-4 rounded-lg font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+                    >
+                        {requesting ? 'שולח...' : 'בקש/י אישור מחדש'}
+                    </button>
+                    {requestError && <p role="alert" className="text-sm text-red-600">{requestError}</p>}
                     <button
                         onClick={handleLogout}
                         className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"

@@ -8,6 +8,8 @@ import UserProfileCard from './UserProfileCard';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp, FirebaseApp } from 'firebase/app';
 
+type Consent = 'approved' | 'pending' | 'rejected' | 'none';
+
 interface ManagedUser {
   id: string;
   name: string;
@@ -16,7 +18,16 @@ interface ManagedUser {
   status: UserStatus;
   extra: string; // age+city for teen, category for employer
   count: number; // jobs count
+  consent: Consent; // parental consent (teens)
+  age?: number;
 }
+
+const CONSENT_META: Record<Consent, { label: string; color: string; bg: string }> = {
+  approved: { label: 'אישור הורים ✓', color: '#0E8A48', bg: '#E4F5EA' },
+  pending: { label: 'ממתין לאישור הורים', color: '#B5740A', bg: '#FBF0DA' },
+  rejected: { label: 'ההורה דחה', color: '#C8364A', bg: '#FBE7EA' },
+  none: { label: 'ללא אישור הורים', color: '#8A93A3', bg: '#F1F3F5' },
+};
 
 const AddUserModal: React.FC<{ onClose: () => void; onDone: () => void }> = ({ onClose, onDone }) => {
   const [name, setName] = useState('');
@@ -35,12 +46,16 @@ const AddUserModal: React.FC<{ onClose: () => void; onDone: () => void }> = ({ o
       tempApp = initializeApp(firebaseConfig, `user-creation-${Date.now()}`);
       const tempAuth = getAuth(tempApp);
       const cred = await createUserWithEmailAndPassword(tempAuth, email, password);
+      // Runs as the newly created user (temp app), so the users create rule applies.
       await setDoc(doc(db, 'users', cred.user.uid), {
         uid: cred.user.uid,
         email: cred.user.email,
         role,
+        status: 'active',
+        birthDate: '',
+        profileCompleted: false,
         createdAt: new Date(),
-        ...(role === 'teen' ? { name } : { companyName: name }),
+        ...(role === 'teen' ? { name, displayName: name, parentalConsentStatus: 'pending', skills: [] } : { companyName: name, displayName: name }),
       });
       onDone();
       onClose();
@@ -156,6 +171,7 @@ const UsersPage: React.FC = () => {
   const [addModal, setAddModal] = useState(false);
   const [editUser, setEditUser] = useState<ManagedUser | null>(null);
   const [viewUserId, setViewUserId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | Consent | 'blocked'>('all');
 
   const MONTHS_HE = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יוני', 'יולי', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ'];
 
@@ -194,9 +210,11 @@ const UsersPage: React.FC = () => {
           name: data.name || '—',
           email: data.email || '',
           createdAt: formatDate(data.createdAt),
-          status: (data.status as UserStatus) || 'verified',
-          extra: (data.age ? 'בן/בת ' + data.age : '') + (data.location ? ' · ' + data.location : (data.city ? ' · ' + data.city : '')),
+          status: (data.status as UserStatus) || 'active',
+          extra: (data.age ? 'בן/בת ' + data.age : 'גיל לא ידוע') + (data.location ? ' · ' + data.location : (data.city ? ' · ' + data.city : '')),
           count: appsByTeen[d.id] || 0,
+          consent: (['approved', 'pending', 'rejected'].includes(data.parentalConsentStatus) ? data.parentalConsentStatus : 'none') as Consent,
+          age: typeof data.age === 'number' ? data.age : undefined,
         };
       }));
 
@@ -207,9 +225,10 @@ const UsersPage: React.FC = () => {
           name: data.companyName || data.name || '—',
           email: data.email || '',
           createdAt: formatDate(data.createdAt),
-          status: (data.status as UserStatus) || 'verified',
+          status: (data.status as UserStatus) || 'active',
           extra: data.category || data.cat || '—',
           count: jobsByEmployer[d.id] || 0,
+          consent: 'none',
         };
       }));
     } catch (err) {
@@ -220,6 +239,19 @@ const UsersPage: React.FC = () => {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  // Admin-only writes (firestore.rules lock `status` from self-writes).
+  const setUserStatus = async (user: ManagedUser, status: UserStatus) => {
+    const label = status === 'blocked' ? 'לחסום' : status === 'verified' ? 'לאמת' : 'לבטל חסימה של';
+    if (!window.confirm(`${label} את ${user.name}?`)) return;
+    try {
+      await setDoc(doc(db, 'users', user.id), { status }, { merge: true });
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert('עדכון הסטטוס נכשל.');
+    }
+  };
 
   const handleDelete = async (user: ManagedUser) => {
     if (!window.confirm(`למחוק את ${user.name}? פעולה זו תמחק את נתוני המשתמש מהאפליקציה.`)) return;
@@ -233,12 +265,14 @@ const UsersPage: React.FC = () => {
   };
 
   const isTeens = userTab === 'teens';
-  const src = isTeens ? teens : employers;
+  const src = (isTeens ? teens : employers).filter(u =>
+    filter === 'all' ? true : filter === 'blocked' ? u.status === 'blocked' : u.consent === filter
+  );
   const tabs: ['teens' | 'employers', string, number][] = [['teens', 'נערים', teens.length], ['employers', 'מעסיקים', employers.length]];
 
   const cols = {
     c1: 'משתמש',
-    c2: isTeens ? 'גיל ועיר' : 'קטגוריה',
+    c2: isTeens ? 'גיל · אישור הורים' : 'קטגוריה',
     c3: 'סטטוס',
     c4: 'הצטרף/ה',
     c5: isTeens ? 'מועמדויות' : 'משרות',
@@ -269,6 +303,14 @@ const UsersPage: React.FC = () => {
         })}
       </div>
 
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: '#8A93A3', fontWeight: 600 }}>סינון:</span>
+        {([['all', 'הכל'], ...(isTeens ? [['approved', 'אישור הורים'], ['pending', 'ממתין להורה'], ['rejected', 'נדחה'], ['none', 'ללא אישור']] : []), ['blocked', 'חסומים']] as [typeof filter, string][]).map(([key, label]) => (
+          <button key={key} onClick={() => setFilter(key)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${filter === key ? '#7B2FF6' : '#E3E6EC'}`, background: filter === key ? '#F3ECFE' : '#fff', color: filter === key ? '#7B2FF6' : '#5A6478', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+        ))}
+      </div>
+
       {/* Table */}
       {loading ? (
         <SkeletonTable />
@@ -280,7 +322,7 @@ const UsersPage: React.FC = () => {
             <div>{cols.c1}</div><div>{cols.c2}</div><div>{cols.c3}</div><div>{cols.c4}</div><div>{cols.c5}</div><div style={{ textAlign: 'left' }}>{cols.c6}</div>
           </div>
           {src.map((u) => {
-            const meta = USER_STATUS[u.status] || USER_STATUS.verified;
+            const meta = USER_STATUS[u.status] || USER_STATUS.active;
             return (
               <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.3fr 1fr 0.9fr 145px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #F4F5F7', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -290,7 +332,14 @@ const UsersPage: React.FC = () => {
                     <div style={{ fontSize: 12, color: '#8A93A3' }}>{u.email}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 13.5, color: '#5A6478' }}>{u.extra || '—'}</div>
+                <div style={{ fontSize: 13.5, color: '#5A6478' }}>
+                  <div>{u.extra || '—'}</div>
+                  {isTeens && (
+                    <span style={{ display: 'inline-block', marginTop: 4, background: CONSENT_META[u.consent].bg, color: CONSENT_META[u.consent].color, padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>
+                      {CONSENT_META[u.consent].label}
+                    </span>
+                  )}
+                </div>
                 <div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '5px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700 }}>
                     {DIcon(meta.icon, { size: 13, color: meta.color })}{meta.label}
@@ -298,7 +347,15 @@ const UsersPage: React.FC = () => {
                 </div>
                 <div style={{ fontSize: 13.5, color: '#5A6478' }}>{u.createdAt}</div>
                 <div style={{ fontSize: 13.5, color: '#5A6478' }}>{u.count}</div>
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  {u.status !== 'verified' && u.status !== 'blocked' && (
+                    <button onClick={() => setUserStatus(u, 'verified')} title="אמת משתמש" style={{ height: 33, padding: '0 10px', borderRadius: 9, border: '1px solid #C7EBD3', background: '#E4F5EA', color: '#0E8A48', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>אמת</button>
+                  )}
+                  {u.status === 'blocked' ? (
+                    <button onClick={() => setUserStatus(u, 'active')} title="בטל חסימה" style={{ height: 33, padding: '0 10px', borderRadius: 9, border: '1px solid #E3E6EC', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>בטל חסימה</button>
+                  ) : (
+                    <button onClick={() => setUserStatus(u, 'blocked')} title="חסום משתמש" style={{ height: 33, padding: '0 10px', borderRadius: 9, border: '1px solid #F5C6CC', background: '#FBE7EA', color: '#C8364A', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>חסום</button>
+                  )}
                   <button onClick={() => setViewUserId(u.id)} title="צפייה" style={{ width: 33, height: 33, borderRadius: 9, border: '1px solid #EEF0F3', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{DIcon('eye', { size: 16, color: '#7A8699' })}</button>
                   <button onClick={() => setEditUser(u)} title="עריכה" style={{ width: 33, height: 33, borderRadius: 9, border: '1px solid #EEF0F3', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{DIcon('user', { size: 16, color: '#7A8699' })}</button>
                   <button onClick={() => handleDelete(u)} title="מחיקה" style={{ width: 33, height: 33, borderRadius: 9, border: '1px solid #EEF0F3', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{DIcon('flag', { size: 16, color: '#C8364A' })}</button>

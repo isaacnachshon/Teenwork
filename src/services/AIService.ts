@@ -1,27 +1,26 @@
-import { GoogleGenAI } from '@google/genai';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/firebase';
 
-const genai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
-const MODEL = 'gemini-2.0-flash';
-
-const SYSTEM_CONTEXT = `אתה עוזר AI של פלטפורמת TeenWork — פלטפורמה לחיבור בין נוער בישראל (גילאי 14-18) למעסיקים.
-אתה מדבר בעברית, בגובה העיניים, בטון ידידותי ומקצועי.
-אתה מכיר את חוקי העבודה לנוער בישראל.
-אל תמציא מידע — אם אתה לא בטוח, אמור זאת.`;
+// Prompts are answered by the `aiGenerate` Cloud Function so the Gemini key
+// stays on the server. The function streams text deltas and returns the full text.
 
 interface ChatMessage {
   role: 'user' | 'model';
   text: string;
 }
 
-async function generate(prompt: string, context?: string): Promise<string> {
-  const fullPrompt = context ? `${SYSTEM_CONTEXT}\n\n${context}\n\n${prompt}` : `${SYSTEM_CONTEXT}\n\n${prompt}`;
+export type OnChunk = (textSoFar: string) => void;
 
-  const response = await genai.models.generateContent({
-    model: MODEL,
-    contents: fullPrompt,
-  });
-
-  return response.text || 'לא הצלחתי לייצר תשובה. נסה שוב.';
+async function generate(prompt: string, context?: string, onChunk?: OnChunk): Promise<string> {
+  const callable = httpsCallable<{ prompt: string; context?: string }, { text: string }, string>(functions, 'aiGenerate');
+  const { stream, data } = await callable.stream({ prompt, context });
+  let text = '';
+  for await (const delta of stream) {
+    text += delta;
+    if (text && onChunk) onChunk(text);
+  }
+  const result = await data;
+  return result?.text || text || 'לא הצלחתי לייצר תשובה. נסה שוב.';
 }
 
 export const AIService = {
@@ -33,7 +32,7 @@ export const AIService = {
     skills?: string[];
     workHistory?: { title: string; company: string; duration: string }[];
     bio?: string;
-  }): Promise<string> {
+  }, onChunk?: OnChunk): Promise<string> {
     const profileText = [
       `שם: ${profile.name}`,
       profile.age ? `גיל: ${profile.age}` : '',
@@ -45,16 +44,18 @@ export const AIService = {
     ].filter(Boolean).join('\n');
 
     return generate(
-      'בנה קורות חיים מקצועיים ומותאמים לנוער עבור הפרופיל הבא. הקורות חיים צריכים להיות בעברית, בפורמט נקי ומסודר, עם סעיפים: פרטים אישיים, השכלה, ניסיון תעסוקתי, כישורים, ותכונות אישיות.',
-      profileText
+      'בנה קורות חיים תמציתיים לנוער עבור הפרופיל הבא (חריגה מכלל 80 המילים מותרת כאן, עד 150 מילים). סעיפים: פרטים אישיים, השכלה, ניסיון, כישורים. שורה אחת לכל פריט.',
+      profileText,
+      onChunk
     );
   },
 
-  async prepareForInterview(jobTitle: string, company?: string): Promise<string> {
+  async prepareForInterview(jobTitle: string, company?: string, onChunk?: OnChunk): Promise<string> {
     const context = company ? `משרה: ${jobTitle} בחברת ${company}` : `משרה: ${jobTitle}`;
     return generate(
-      'הכן את הנער/ה לראיון עבודה. תן 5 שאלות נפוצות שעשויות להישאל, עם הצעות לתשובות. הוסף טיפים כלליים להתנהגות בראיון. התייחס לכך שמדובר בנוער בגילאי 14-18.',
-      context
+      'הכנה לראיון עבודה לנוער: 3 שאלות נפוצות עם תשובה לדוגמה במשפט אחד לכל שאלה, ו-2 טיפים קצרים להתנהגות בראיון.',
+      context,
+      onChunk
     );
   },
 
@@ -63,7 +64,7 @@ export const AIService = {
     city?: string;
     availability?: string[];
     preferredJobTypes?: string[];
-  }): Promise<string> {
+  }, onChunk?: OnChunk): Promise<string> {
     const profileText = [
       profile.skills?.length ? `כישורים: ${profile.skills.join(', ')}` : '',
       profile.city ? `עיר: ${profile.city}` : '',
@@ -72,24 +73,27 @@ export const AIService = {
     ].filter(Boolean).join('\n');
 
     return generate(
-      'בהתבסס על הפרופיל, הצע 5 סוגי עבודות מתאימים לנוער עם הסבר קצר למה כל אחד מתאים. התמקד בעבודות חוקיות ובטוחות לנוער בישראל.',
-      profileText
+      'בהתבסס על הפרופיל, הצע 3 סוגי עבודות מתאימים לנוער — שורה אחת לכל עבודה: שם + למה מתאימה. רק עבודות חוקיות ובטוחות לנוער בישראל.',
+      profileText,
+      onChunk
     );
   },
 
-  async suggestSalary(jobType: string, city?: string): Promise<string> {
+  async suggestSalary(jobType: string, city?: string, onChunk?: OnChunk): Promise<string> {
     const context = city ? `סוג עבודה: ${jobType}, עיר: ${city}` : `סוג עבודה: ${jobType}`;
     return generate(
-      'מהו טווח השכר המומלץ לנוער עבור סוג עבודה זה בישראל? ציין את שכר המינימום לנוער לפי החוק, ואת הטווח המקובל בשוק. ציין את המקור (חוק עבודת הנוער).',
-      context
+      'טווח שכר לנוער לסוג עבודה זה בישראל: שכר מינימום לנוער לפי חוק (לפי גיל) + הטווח המקובל בשוק. נקודות קצרות בלבד.',
+      context,
+      onChunk
     );
   },
 
-  async explainRights(topic?: string): Promise<string> {
+  async explainRights(topic?: string, onChunk?: OnChunk): Promise<string> {
     const context = topic ? `נושא ספציפי: ${topic}` : '';
     return generate(
-      'הסבר את זכויות הנוער בעבודה בישראל. כלול: שעות עבודה מותרות, שכר מינימום, חופשות, ביטוח, ותנאים מיוחדים. אם יש נושא ספציפי — התמקד בו. ציין מקורות חוקיים.',
-      context
+      'זכויות נוער בעבודה בישראל — 5 הנקודות הכי חשובות: שעות מותרות, שכר מינימום, הפסקות, איסורים, למי פונים כשמפרים זכויות. אם יש נושא ספציפי — התמקד רק בו.',
+      context,
+      onChunk
     );
   },
 
@@ -99,7 +103,7 @@ export const AIService = {
     bio?: string;
     workHistory?: { title: string; company: string }[];
     profileCompleted?: boolean;
-  }): Promise<string> {
+  }, onChunk?: OnChunk): Promise<string> {
     const profileText = [
       `שם: ${profile.name}`,
       profile.skills?.length ? `כישורים: ${profile.skills.join(', ')}` : 'כישורים: לא צוינו',
@@ -109,13 +113,14 @@ export const AIService = {
     ].join('\n');
 
     return generate(
-      'נתח את הפרופיל ותן ציון מ-1 עד 10 עם המלצות לשיפור. התייחס ל: מידת השלמת הפרופיל, כישורים, ניסיון, ותיאור עצמי. תן 3 טיפים קונקרטיים לשיפור הפרופיל.',
-      profileText
+      'נתח את הפרופיל: ציון מ-1 עד 10 בשורה הראשונה, ואז 3 טיפים קונקרטיים לשיפור — שורה אחת לכל טיפ.',
+      profileText,
+      onChunk
     );
   },
 
-  async chat(messages: ChatMessage[], newMessage: string): Promise<string> {
+  async chat(messages: ChatMessage[], newMessage: string, onChunk?: OnChunk): Promise<string> {
     const history = messages.map(m => `${m.role === 'user' ? 'נער/ה' : 'AI'}: ${m.text}`).join('\n');
-    return generate(newMessage, history ? `היסטוריית שיחה:\n${history}` : undefined);
+    return generate(newMessage, history ? `היסטוריית שיחה:\n${history}` : undefined, onChunk);
   },
 };

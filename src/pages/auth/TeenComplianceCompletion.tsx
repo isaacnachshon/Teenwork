@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '@/firebase';
 import { doc, setDoc, collection, serverTimestamp } from 'firebase/firestore';
 import LegalModal from '@/components/LegalModal';
-import { calcAge, isYouthAge, YOUTH_AGE_ERROR, TERMS_VERSION } from '@/utils/age';
+import { isYouthAge, YOUTH_AGE_ERROR, TERMS_VERSION, dobBounds } from '@/utils/age';
 import { LogOutIcon, UserIcon } from '@/components/icons';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
 }
 
 /** Mandatory gate when a teen account lacks birthDate (e.g. Google signup race / legacy). */
+const DOB = dobBounds();
+
 const TeenComplianceCompletion: React.FC<Props> = ({ user }) => {
   const [birthDate, setBirthDate] = useState('');
   const [parentName, setParentName] = useState('');
@@ -39,14 +41,12 @@ const TeenComplianceCompletion: React.FC<Props> = ({ user }) => {
     }
     setIsLoading(true);
     try {
-      const age = calcAge(birthDate);
+      // age/parentalConsentStatus are server-managed (rules lock them; the approval trigger sets pending).
       await setDoc(doc(db, 'users', user.uid), {
         birthDate,
-        age,
         parentName: parentName.trim(),
         parentEmail: parentEmail.trim(),
         parentPhone: parentPhone.trim(),
-        parentalConsentStatus: 'pending',
         termsAcceptedAt: serverTimestamp(),
         termsVersion: TERMS_VERSION,
         updatedAt: serverTimestamp(),
@@ -86,7 +86,7 @@ const TeenComplianceCompletion: React.FC<Props> = ({ user }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="dob-complete" className="block text-sm font-medium text-gray-700">תאריך לידה</label>
-            <input id="dob-complete" type="date" required value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            <input id="dob-complete" type="date" required min={DOB.min} max={DOB.max} value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
           </div>
           <div>
             <label htmlFor="pn-complete" className="block text-sm font-medium text-gray-700">שם הורה</label>

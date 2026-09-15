@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import JobRightsPanel from '@/components/JobRightsPanel';
 import type { Job } from '@/types';
 import { MapPinIcon, DollarSignIcon, SearchIcon, MapIcon, BriefcaseIcon } from '@/components/icons';
 import { auth, db } from '@/firebase';
@@ -63,6 +64,7 @@ const JobCard: React.FC<{ job: Job; onViewDetails: (job: Job) => void; distance?
                 <span>{job.salary} ₪ לשעה</span>
             </div>
         </div>
+        <JobRightsPanel mode="card" job={job} />
         {distance !== undefined && distance !== Infinity && (
             <p className="text-xs text-purple-600 font-semibold">מרחק: {distance.toFixed(1)} ק"מ</p>
         )}

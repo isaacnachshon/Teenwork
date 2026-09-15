@@ -9,6 +9,9 @@ import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
 import ParentApprovalPage from '@/pages/auth/ParentApprovalPage';
 import WaitingForParentApproval from '@/pages/auth/WaitingForParentApproval';
 import TeenComplianceCompletion from '@/pages/auth/TeenComplianceCompletion';
+import BlockedAccount from '@/pages/auth/BlockedAccount';
+import TermsReacceptance from '@/pages/auth/TermsReacceptance';
+import { TERMS_VERSION } from '@/utils/youthLaw';
 import { useAuth } from '@/hooks/useAuth';
 import type { TeenProfile } from '@/types';
 
@@ -44,11 +47,18 @@ const App: React.FC = () => {
 
       case 'teen':
         if (role === 'teen' && user) {
+          // Gate order: blocked → email → DOB/parent details → terms v2 → parental consent → dashboard.
+          if (profile?.status === 'blocked') {
+            return <BlockedAccount />;
+          }
           if (!user.emailVerified) {
             return <EmailVerificationPage user={user} />;
           }
           if (!teenProfile?.birthDate) {
             return <TeenComplianceCompletion user={user} />;
+          }
+          if (teenProfile.termsVersion !== TERMS_VERSION) {
+            return <TermsReacceptance user={user} role="teen" />;
           }
           if (teenProfile.parentalConsentStatus !== 'approved') {
             return <WaitingForParentApproval user={user} />;
@@ -58,9 +68,16 @@ const App: React.FC = () => {
         return <TeenLoginPage onBack={() => setView('landing')} />;
 
       case 'employer':
-        return role === 'employer'
-          ? <DashboardLayout role="employer" userName={userName} onLogout={logout} />
-          : <EmployerLoginPage onBack={() => setView('landing')} />;
+        if (role === 'employer' && user) {
+          if (profile?.status === 'blocked') {
+            return <BlockedAccount />;
+          }
+          if (profile?.termsVersion !== TERMS_VERSION) {
+            return <TermsReacceptance user={user} role="employer" />;
+          }
+          return <DashboardLayout role="employer" userName={userName} onLogout={logout} />;
+        }
+        return <EmployerLoginPage onBack={() => setView('landing')} />;
 
       case 'admin':
         return role === 'admin'
@@ -70,7 +87,7 @@ const App: React.FC = () => {
       default:
         return <LandingPage onRoleSelect={(v) => setView(v as View)} />;
     }
-  }, [view, role, user, userName, logout, teenProfile]);
+  }, [view, role, user, userName, logout, teenProfile, profile]);
 
   if (approvalToken) {
     return <ParentApprovalPage token={approvalToken} />;

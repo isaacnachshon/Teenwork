@@ -120,8 +120,9 @@ const EmployerLoginPage: React.FC<EmployerLoginPageProps> = ({ onBack }) => {
                     await uploadBytes(storageRef, profileImage);
                     companyLogoUrl = await getDownloadURL(storageRef);
                 } catch (uploadErr) {
-                    await deleteUser(user);
-                    throw new Error('העלאת הלוגו נכשלה.');
+                    // Storage may be unavailable (not enabled on the project yet); the logo is optional.
+                    console.warn('Logo upload failed; continuing without logo.', uploadErr);
+                    companyLogoUrl = '';
                 }
             }
 

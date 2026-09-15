@@ -1,4 +1,5 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
+import { initAppCheckFor } from "./appCheck";
 
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,6 +21,9 @@ try {
 }
 
 export const app = _app;
+
+// App Check must be initialized before any Auth/Firestore/Storage/Functions call.
+export const appCheck = initAppCheckFor(_app);
 
 export function getFirebaseInitError() {
   return _initError;

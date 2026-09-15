@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+// Remove native `required` so app-level validation (the thing under test) runs.
+async function stripRequired(page: import('@playwright/test').Page) {
+    await page.evaluate(() => document.querySelectorAll('[required]').forEach(el => el.removeAttribute('required')));
+}
+
 
 // Helper: navigate to employer login from landing page
 async function goToEmployerLogin(page: any) {
@@ -77,6 +82,7 @@ test.describe('Employer Persona', () => {
         await page.locator('#email-signup').fill('employer@test.com');
         await page.locator('#password-signup').fill('password123');
         await page.locator('#confirmPassword').fill('differentpassword');
+        await stripRequired(page);
         await page.getByRole('button', { name: 'הרשמה', exact: true }).click();
 
         await expect(page.getByRole('alert')).toContainText('הסיסמאות אינן תואמות');
@@ -94,6 +100,7 @@ test.describe('Employer Persona', () => {
         await page.locator('#email-signup').fill('employer@test.com');
         await page.locator('#password-signup').fill('pass123');
         await page.locator('#confirmPassword').fill('pass123');
+        await stripRequired(page);
         await page.getByRole('button', { name: 'הרשמה', exact: true }).click();
 
         await expect(page.getByRole('alert')).toContainText('נא למלא את כל השדות');

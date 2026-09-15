@@ -49,10 +49,10 @@ Stage 0 is the state before any unlock condition is met. In practice, the user's
 
 ### Job sorting and visibility
 
-- Jobs are always sorted by relevance (most relevant first).
-- Visible jobs = the top N% of the sorted list.
+- Jobs are sorted by `createdAt` descending (newest first). This is the "relevance" order — newer postings are more likely to be active and relevant.
+- Visible jobs = the first N of the sorted list.
 - Locked jobs (the tail) are shown as blurred cards with an overlay.
-- The locked cards are always the least-relevant jobs, so there is no feel of arbitrary hiding.
+- Locked cards are always the oldest/least-recent jobs, so the most useful listings are always visible.
 
 ### Exact percentages
 

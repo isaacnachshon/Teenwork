@@ -4,6 +4,7 @@ import { Skeleton, SkeletonRow } from '@/components/Skeleton';
 import { DashRole, ConnStatus, CONN_STATUS, avatarGrad, initial } from '@/types/dashboard';
 import { auth, db } from '@/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ReputationService, RelatedProfile } from '@/services/ReputationService';
 
 interface Props {
   role: DashRole;
@@ -51,6 +52,14 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
   const [filter, setFilter] = useState<'all' | ConnStatus>('all');
   const [records, setRecords] = useState<AppRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error,setError]=useState('');
+  const [details,setDetails]=useState<RelatedProfile|null>(null);
+  const [rating,setRating]=useState<AppRecord|null>(null);
+  const [score,setScore]=useState(5);
+  const [saving,setSaving]=useState(false);
+  const [notice,setNotice]=useState('');
+  const showDetails=async(rec:AppRecord)=>{setError('');try{setDetails(await ReputationService.profile(role==='teen'?rec.employerId:rec.applicantId));}catch{setError('לא ניתן לטעון פרטים.');}};
+  const saveRating=async()=>{if(!rating || saving)return;setSaving(true);setError('');try{await ReputationService.rate(rating.id,score);setRating(null);setNotice('הדירוג נשמר.');}catch{setError('הדירוג לא נשמר. ניתן לדרג רק העסקה שהושלמה.');}finally{setSaving(false);}};
 
   const uid = auth?.currentUser?.uid;
 
@@ -97,6 +106,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
       setRecords(apps);
     } catch (err) {
       console.error('Failed to load applications:', err);
+      setError('טעינת ההתקשרויות נכשלה.');
     } finally {
       setLoading(false);
     }
@@ -113,6 +123,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
       ));
     } catch (err) {
       console.error('Failed to update status:', err);
+      setError('עדכון הסטטוס נכשל.');
     }
   };
 
@@ -169,6 +180,10 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
       </div>
 
       {/* Filters */}
+      {error && <p role="alert">{error}<button onClick={loadApplications}>נסה שוב</button></p>}
+      {notice && <p role="status">{notice}</p>}
+      {details && <section role="dialog" aria-label="פרטי ההתקשרות" className="p-6 bg-white"><h2>{details.name}</h2><p>{details.city}</p><p>{details.bio}</p><p>כישורים: {details.skills.join(', ') || 'לא צוינו'}</p><p>זמינות: {details.availability.join(', ') || 'לא צוינה'}</p><button onClick={()=>setDetails(null)}>סגור פרטים</button></section>}
+      {rating && <section role="dialog" aria-label="דירוג העסקה" className="p-6 bg-white"><h2>דירוג עבור {rating.jobTitle}</h2><label>ציון<select value={score} onChange={e=>setScore(Number(e.target.value))}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}</select></label><p>שליחה נוספת תעדכן את הדירוג שלך להעסקה זו.</p><button disabled={saving} onClick={saveRating}>{saving?'שומר...':'שמור דירוג'}</button><button disabled={saving} onClick={()=>setRating(null)}>ביטול</button></section>}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {filters.map(([key, label, count]) => {
           const active = filter === key;
@@ -201,7 +216,9 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.map(rec => {
           const meta = CONN_STATUS[rec.status];
-          const actions = getActions(rec);
+          const actions = getActions(rec).filter(a=>!['פרטים','הודעה'].includes(a.label));
+          actions.push(mkBtn('פרטים','soft',()=>showDetails(rec)));
+          if(rec.status==='completed' && role!=='admin')actions.push(mkBtn(role==='teen'?'דרג מעסיק':'דרג עובד','primary',()=>{setScore(5);setRating(rec);}));
           return (
             <div key={rec.id} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 175 }}>

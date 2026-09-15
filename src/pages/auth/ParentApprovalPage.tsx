@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, getFirestore, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
-import { firebaseConfig } from '@/firebase';
+import { firebaseConfig, initAppCheckFor } from '@/firebase';
 import { ShieldCheckIcon, CheckCircleIcon, ClockIcon } from '@/components/icons';
 
 interface ParentApprovalPageProps {
@@ -67,8 +67,9 @@ const ParentApprovalPage: React.FC<ParentApprovalPageProps> = ({ token }) => {
     const getParentAuth = () => {
         if (parentAuthRef.current) return parentAuthRef.current;
         const existingApps = getApps();
-        const parentApp = existingApps.find(a => a.name === 'parent-verify')
-            || initializeApp(firebaseConfig, 'parent-verify');
+        const existingApp = existingApps.find(a => a.name === 'parent-verify');
+        const parentApp = existingApp || initializeApp(firebaseConfig, 'parent-verify');
+        if (!existingApp) initAppCheckFor(parentApp);
         parentAuthRef.current = getAuth(parentApp);
         return parentAuthRef.current;
     };
@@ -81,13 +82,9 @@ const ParentApprovalPage: React.FC<ParentApprovalPageProps> = ({ token }) => {
         try {
             const parentAuth = getParentAuth();
 
-            let phone = approvalData.parentPhone.trim();
-            if (phone.startsWith('0')) {
-                phone = '+972' + phone.substring(1);
-            }
-            if (!phone.startsWith('+')) {
-                phone = '+972' + phone;
-            }
+            // Must match parentPhoneMatches() in firestore.rules
+            const digits = approvalData.parentPhone.replace(/[^0-9]/g, '');
+            const phone = digits.startsWith('0') ? '+972' + digits.substring(1) : '+' + digits;
 
             if (recaptchaVerifierRef.current) {
                 recaptchaVerifierRef.current.clear();
@@ -148,14 +145,13 @@ const ParentApprovalPage: React.FC<ParentApprovalPageProps> = ({ token }) => {
         try {
             const newStatus = approved ? 'approved' : 'rejected';
 
-            await updateDoc(doc(db, 'parentalApprovals', token), {
+            // The write must carry the parent's phone-verified session (secondary app);
+            // users/{teenUid} is updated by the onParentalApprovalDecided Cloud Function.
+            const parentApp = getApps().find(a => a.name === 'parent-verify');
+            if (!parentApp) throw new Error('Parent session missing');
+            await updateDoc(doc(getFirestore(parentApp), 'parentalApprovals', token), {
                 status: newStatus,
                 decidedAt: new Date(),
-            });
-
-            await updateDoc(doc(db, 'users', approvalData.teenUid), {
-                parentalConsentStatus: newStatus,
-                parentalConsentReviewedAt: new Date().toISOString(),
             });
 
             setDecision(newStatus);
@@ -293,9 +289,15 @@ const ParentApprovalPage: React.FC<ParentApprovalPageProps> = ({ token }) => {
                             <p className="text-sm text-gray-600">אימייל: <strong>{approvalData?.teenEmail}</strong></p>
                         </div>
 
-                        <p className="text-sm text-gray-600 text-center">
-                            באישור ההרשמה, את/ה מאשר/ת שהנער/ה רשאי/ת להשתמש בפלטפורמת TeenWork לחיפוש עבודה.
-                        </p>
+                        <div className="text-sm text-gray-600 space-y-1">
+                            <p className="font-semibold text-gray-800">מה משמעות האישור?</p>
+                            <ul className="list-disc pr-5 space-y-1">
+                                <li>האישור הוא לחשבון (חד-פעמי) ומאפשר לנער/ה לחפש עבודה ולהגיש מועמדות.</li>
+                                <li>תקבל/י עדכון במייל על כל מועמדות שהנער/ה מגיש/ה, עם פרטי המשרה והשכר.</li>
+                                <li>כל משרה בפלטפורמה נבדקת מול חוק עבודת הנוער (שכר מינימום לפי גיל, שעות, לילה, שבת).</li>
+                                <li>ניתן לבטל את האישור בכל עת בפנייה אל support@teensworks.com.</li>
+                            </ul>
+                        </div>
 
                         {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 

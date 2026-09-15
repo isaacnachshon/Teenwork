@@ -58,15 +58,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const init = async () => {
         try {
-          const defaultName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'משתמש';
-          await UserService.ensureDocument(firebaseUser.uid, {
-            displayName: defaultName,
-            email: firebaseUser.email || '',
-            photoURL: firebaseUser.photoURL || '',
-          } as Partial<UserProfile>);
+          // The user document is created by the signup flows with role/consent fields that
+          // firestore.rules require; never create a roleless document here.
+          UserService.touchLogin(firebaseUser.uid).catch(() => {});
 
           unsubProfile = UserService.onSnapshot(firebaseUser.uid, (userProfile) => {
-            if (!userProfile?.role) return;
+            if (!userProfile?.role) {
+              setProfile(null);
+              setLoading(false);
+              return;
+            }
 
             if (userProfile.role === 'teen' && !firebaseUser.emailVerified) {
               const createdTime = firebaseUser.metadata.creationTime;

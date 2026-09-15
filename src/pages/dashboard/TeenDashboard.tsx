@@ -86,7 +86,7 @@ const initialTeenProfile: TeenProfile = {
   ]
 };
 
-const JobCard: React.FC<{ job: Job, onViewDetails: (job: Job) => void, distance?: number }> = ({ job, onViewDetails, distance }) => (
+const JobCard: React.FC<{ job: Job, onViewDetails: (job: Job) => void, distance?: number, matchReasons?: string[] }> = ({ job, onViewDetails, distance, matchReasons }) => (
   <div className="bg-white p-4 rounded-xl shadow-md flex flex-col gap-3 min-w-[280px] hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
     <div className="flex items-center gap-3">
       {job.companyLogoUrl ? (
@@ -114,6 +114,13 @@ const JobCard: React.FC<{ job: Job, onViewDetails: (job: Job) => void, distance?
     </div>
     {distance !== undefined && (
       <p className="text-xs text-purple-600 font-semibold">📍 מרחק: {distance.toFixed(1)} ק"מ</p>
+    )}
+    {matchReasons && matchReasons.length > 0 && (
+      <div className="flex flex-wrap gap-1.5">
+        {matchReasons.map(reason => (
+          <span key={reason} className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">✓ {reason}</span>
+        ))}
+      </div>
     )}
     <p className="text-sm text-gray-500 flex-grow">{job.description}</p>
     <button onClick={() => onViewDetails(job)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 mt-2">צפה בפרטים</button>
@@ -173,6 +180,52 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
     };
     fetchJobs();
   }, []);
+
+  // Jobs matching the teen's profile: preferred job types, skill overlap, proximity
+  const matchingJobs = useMemo(() => {
+    const teenSkills = (userProfile.skills || []).map(s => s.trim());
+    const preferredTypes = userProfile.preferredJobTypes || [];
+
+    return jobs
+      .map(job => {
+        let score = 0;
+        const reasons: string[] = [];
+
+        if (preferredTypes.includes(job.type)) {
+          score += 3;
+          reasons.push(`תחום מועדף: ${job.type}`);
+        }
+
+        const matchedSkills = (job.skills || []).filter(skill =>
+          teenSkills.some(teenSkill =>
+            teenSkill.includes(skill) || skill.includes(teenSkill)
+          )
+        );
+        if (matchedSkills.length > 0) {
+          score += matchedSkills.length;
+          reasons.push(`כישורים תואמים: ${matchedSkills.join(', ')}`);
+        }
+
+        let distance: number | undefined;
+        if (job.coordinates && userProfile.coordinates) {
+          distance = calculateDistance(
+            userProfile.coordinates.lat,
+            userProfile.coordinates.lng,
+            job.coordinates.lat,
+            job.coordinates.lng
+          );
+          if (distance < 15) {
+            score += 1;
+            reasons.push('קרוב אלייך');
+          }
+        }
+
+        return { ...job, distance, score, matchReasons: reasons };
+      })
+      .filter(job => job.score > 0)
+      .sort((a, b) => b.score - a.score || (a.distance ?? Infinity) - (b.distance ?? Infinity))
+      .slice(0, 8);
+  }, [jobs, userProfile.skills, userProfile.preferredJobTypes, userProfile.coordinates]);
 
   const nearbyJobs = useMemo(() => {
     if (!userProfile.coordinates) return [];
@@ -381,7 +434,24 @@ const TeenDashboard: React.FC<TeenDashboardProps> = ({ onLogout, onHeaderVisibil
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">עבודות מומלצות עבורך</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">משרות מתאימות עבורך</h2>
+        {loadingJobs ? (
+          <p className="text-gray-500">טוען משרות...</p>
+        ) : matchingJobs.length > 0 ? (
+          <div className="flex gap-6 overflow-x-auto pb-4 -mx-2 px-2">
+            {matchingJobs.map(job => <JobCard key={job.id} job={job} onViewDetails={handleViewJobDetails} distance={job.distance} matchReasons={job.matchReasons} />)}
+          </div>
+        ) : (
+          <div className="bg-white p-6 rounded-xl shadow-md text-center">
+            <p className="text-gray-600 mb-3">עדיין לא מצאנו משרות שמתאימות לפרופיל שלך.</p>
+            <p className="text-sm text-gray-500">כדאי להוסיף כישורים ותחומי עבודה מועדפים בפרופיל כדי לקבל התאמות מדויקות.</p>
+            <button onClick={() => navigateTo('editProfile')} className="mt-4 bg-purple-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-purple-700 transition-colors">עדכון פרופיל</button>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">כל המשרות</h2>
         <div className="flex gap-6 overflow-x-auto pb-4 -mx-2 px-2">
           {jobs.map(job => <JobCard key={job.id} job={job} onViewDetails={handleViewJobDetails} />)}
         </div>

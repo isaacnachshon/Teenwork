@@ -9,6 +9,13 @@ interface ChatMsg {
   text: string;
 }
 
+const errorText = (err: unknown): string => {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /"code":\s*(429|503)/.test(msg)
+    ? 'יש עומס על השירות כרגע 🙏 נסה שוב בעוד כמה שניות.'
+    : 'מצטער, אירעה שגיאה. נסה שוב.';
+};
+
 const QUICK_ACTIONS = [
   { icon: 'briefcase', label: 'בנה לי קורות חיים', action: 'resume', color: '#7B2FF6', bg: '#F3ECFE' },
   { icon: 'user', label: 'הכן אותי לראיון', action: 'interview', color: '#2D6BE0', bg: '#E8F0FE' },
@@ -41,46 +48,49 @@ const AIAssistantPage: React.FC = () => {
     setMessages(prev => [...prev, { role, text }]);
   };
 
+  // Streams into the last model message, creating it on the first chunk
+  const streamTo = (text: string) => {
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.role === 'model') return [...prev.slice(0, -1), { role: 'model' as const, text }];
+      return [...prev, { role: 'model' as const, text }];
+    });
+  };
+
   const handleQuickAction = async (action: string) => {
     setLoading(true);
     try {
-      let userMsg = '';
       let response = '';
       switch (action) {
         case 'resume':
-          userMsg = 'בנה לי קורות חיים';
-          addMessage('user', userMsg);
-          response = await AIService.buildResume(profile || {});
+          addMessage('user', 'בנה לי קורות חיים');
+          response = await AIService.buildResume(profile || {}, streamTo);
           break;
         case 'interview':
-          userMsg = 'הכן אותי לראיון עבודה';
-          addMessage('user', userMsg);
-          response = await AIService.prepareForInterview(profile?.preferredJobTypes?.[0] || 'עבודה כללית');
+          addMessage('user', 'הכן אותי לראיון עבודה');
+          response = await AIService.prepareForInterview(profile?.preferredJobTypes?.[0] || 'עבודה כללית', undefined, streamTo);
           break;
         case 'analyze':
-          userMsg = 'נתח את הפרופיל שלי';
-          addMessage('user', userMsg);
-          response = await AIService.analyzeProfile(profile || {});
+          addMessage('user', 'נתח את הפרופיל שלי');
+          response = await AIService.analyzeProfile(profile || {}, streamTo);
           break;
         case 'salary':
-          userMsg = 'כמה שכר מגיע לי?';
-          addMessage('user', userMsg);
-          response = await AIService.suggestSalary(profile?.preferredJobTypes?.[0] || 'עבודה כללית', profile?.city);
+          addMessage('user', 'כמה שכר מגיע לי?');
+          response = await AIService.suggestSalary(profile?.preferredJobTypes?.[0] || 'עבודה כללית', profile?.city, streamTo);
           break;
         case 'rights':
-          userMsg = 'מה הזכויות שלי בעבודה?';
-          addMessage('user', userMsg);
-          response = await AIService.explainRights();
+          addMessage('user', 'מה הזכויות שלי בעבודה?');
+          response = await AIService.explainRights(undefined, streamTo);
           break;
         case 'suggest':
-          userMsg = 'מצא לי עבודה מתאימה';
-          addMessage('user', userMsg);
-          response = await AIService.suggestJobs(profile || {});
+          addMessage('user', 'מצא לי עבודה מתאימה');
+          response = await AIService.suggestJobs(profile || {}, streamTo);
           break;
       }
-      addMessage('model', response);
+      streamTo(response);
     } catch (err) {
-      addMessage('model', 'מצטער, אירעה שגיאה. נסה שוב.');
+      console.error('AI quick action failed:', err);
+      addMessage('model', errorText(err));
     } finally {
       setLoading(false);
     }
@@ -93,10 +103,11 @@ const AIAssistantPage: React.FC = () => {
     addMessage('user', text);
     setLoading(true);
     try {
-      const response = await AIService.chat(messages, text);
-      addMessage('model', response);
-    } catch {
-      addMessage('model', 'מצטער, אירעה שגיאה. נסה שוב.');
+      const response = await AIService.chat(messages, text, streamTo);
+      streamTo(response);
+    } catch (err) {
+      console.error('AI chat failed:', err);
+      addMessage('model', errorText(err));
     } finally {
       setLoading(false);
     }
@@ -133,7 +144,7 @@ const AIAssistantPage: React.FC = () => {
               </div>
             </div>
           ))}
-          {loading && (
+          {loading && messages[messages.length - 1]?.role === 'user' && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <div style={{ padding: '12px 20px', borderRadius: 16, background: '#fff', border: '1px solid #E7E9EE', color: '#8A93A3', fontSize: 14 }}>
                 חושב...

@@ -4,6 +4,10 @@ import { MapPinIcon, DollarSignIcon, ClockIcon, CalendarIcon, BriefcaseIcon, Che
 import { auth, db } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { calcAge, isYouthAge, YOUTH_AGE_ERROR } from '@/utils/age';
+import { evaluateJobForTeen } from '@/utils/youthLaw';
+import JobRightsPanel from '@/components/JobRightsPanel';
+import EmploymentPrepChecklist from '@/components/EmploymentPrepChecklist';
+import { ReportService } from '@/services/ReportService';
 
 interface JobDetailPageProps {
     job: Job;
@@ -28,6 +32,53 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
     const [distanceInfo, setDistanceInfo] = useState<{ text: string; link?: string } | null>(null);
     const [applyStatus, setApplyStatus] = useState<'idle' | 'submitting' | 'applied' | 'error'>('idle');
     const [applyError, setApplyError] = useState('');
+    const [teen, setTeen] = useState<{ birthDate?: string; parentalConsentStatus?: string; name?: string; idNumber?: string; address?: string } | null>(null);
+
+    // Load the viewing teen once so the rights panel can evaluate the job for their age.
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user) return;
+        let active = true;
+        getDoc(doc(db, 'users', user.uid)).then(snap => {
+            if (active) setTeen(snap.exists() ? (snap.data() as any) : null);
+        }).catch(() => { /* panel falls back to the job's minAge */ });
+        return () => { active = false; };
+    }, []);
+
+    const teenAge = teen?.birthDate ? calcAge(teen.birthDate) : undefined;
+    const evaluation = teenAge !== undefined ? evaluateJobForTeen(job, teenAge) : null;
+    const blockedReason = evaluation
+        ? (!evaluation.ageOk ? (evaluation.ageNote || 'המשרה אינה מתאימה לגילך.')
+            : evaluation.wage === 'below' ? `השכר במשרה נמוך משכר המינימום לגילך (₪${evaluation.wageFloor.toFixed(2)}).`
+            : evaluation.night === 'illegal' ? 'שעות המשרה חורגות מהמותר לגילך לפי חוק עבודת הנוער.'
+            : evaluation.shiftHours > 8 ? 'משמרת ארוכה מ-8 שעות אסורה לנוער.'
+            : '')
+        : '';
+
+    const [reportState, setReportState] = useState<'idle' | 'sent' | 'error'>('idle');
+    const reportJob = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        const description = window.prompt('מה הבעיה במשרה? (שכר מתחת למינימום, שעות לא חוקיות, תוכן לא הולם...)');
+        if (description === null) return;
+        try {
+            await ReportService.create({ reporterId: user.uid, reporterName: teen?.name || user.displayName || '', targetType: 'job', targetId: job.id, type: 'safety_concern', description: description.trim() || 'דיווח על משרה' });
+            setReportState('sent');
+        } catch (err) {
+            console.error('Report failed:', err);
+            setReportState('error');
+        }
+    };
+
+    const shareWithParent = () => {
+        const lines = [
+            'היי, הגשתי מועמדות דרך TeenWork:',
+            `${job.title} אצל ${job.company}`,
+            `שכר: ₪${job.salary} לשעה · שעות: ${job.startTime || '?'}–${job.endTime || '?'} · ${job.location}`,
+            `זכויות נוער: ${window.location.origin}/?rights=1`,
+        ];
+        window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
+    };
 
     const handleApply = async () => {
         const user = auth.currentUser;
@@ -42,6 +93,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
         try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const userData = userDoc.exists() ? userDoc.data() : {};
+            setTeen(userData as any);
 
             if (userData.parentalConsentStatus !== 'approved') {
                 setApplyStatus('error');
@@ -55,8 +107,12 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                 return;
             }
 
-            // Double-check age locally as well
-            void calcAge(userData.birthDate);
+            const ev = evaluateJobForTeen(job, calcAge(userData.birthDate));
+            if (!ev.ageOk || ev.wage === 'below' || ev.night === 'illegal' || ev.shiftHours > 8) {
+                setApplyStatus('error');
+                setApplyError(!ev.ageOk ? (ev.ageNote || YOUTH_AGE_ERROR) : 'המשרה אינה עומדת בחוק עבודת הנוער עבור גילך ולכן לא ניתן להגיש מועמדות.');
+                return;
+            }
 
             await addDoc(collection(db, 'applications'), {
                 jobId: job.id,
@@ -69,10 +125,12 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                 createdAt: serverTimestamp(),
             });
             setApplyStatus('applied');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error submitting application:', error);
             setApplyStatus('error');
-            setApplyError('שגיאה בשליחת המועמדות. נסה שוב.');
+            setApplyError(error?.code === 'permission-denied'
+                ? 'ההגשה נדחתה על ידי המערכת: נדרשים אישור הורים תקף, גיל מתאים למשרה ואישור התקנון העדכני.'
+                : 'שגיאה בשליחת המועמדות. נסה שוב.');
         }
     };
 
@@ -128,6 +186,13 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                 </div>
 
                 <div className="space-y-6">
+                     <JobRightsPanel mode="teen" job={job} teenAge={teenAge} />
+                     <div className="text-left">
+                        {reportState === 'sent'
+                            ? <p role="status" className="text-sm text-green-700">הדיווח נשלח לצוות TeenWork. תודה!</p>
+                            : <button type="button" onClick={reportJob} className="text-sm text-gray-500 hover:text-red-600 underline">דווח על משרה זו</button>}
+                        {reportState === 'error' && <p role="alert" className="text-sm text-red-600">שליחת הדיווח נכשלה.</p>}
+                     </div>
                      <div className="bg-white p-6 rounded-xl shadow-md">
                         <h2 className="text-xl font-bold text-gray-800 mb-3">פרטים נוספים</h2>
                          <ul className="space-y-4 text-gray-600">
@@ -163,13 +228,25 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack, userLocation
                          <p className="mt-2 mb-4 opacity-90">הגישו מועמדות עכשיו והתחילו את הקריירה שלכם!</p>
                          <button
                             onClick={handleApply}
-                            disabled={applyStatus === 'submitting' || applyStatus === 'applied'}
+                            disabled={applyStatus === 'submitting' || applyStatus === 'applied' || !!blockedReason}
                             className="w-full bg-white text-purple-600 font-bold py-3 px-6 rounded-lg hover:bg-purple-50 transition-colors duration-300 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                          >
                             {applyStatus === 'submitting' ? 'שולח מועמדות...' : applyStatus === 'applied' ? 'המועמדות נשלחה ✓' : 'הגש מועמדות עכשיו'}
                          </button>
+                         {blockedReason && applyStatus !== 'applied' && (
+                            <p role="alert" className="mt-2 text-sm text-red-100">{blockedReason}</p>
+                         )}
                          {applyStatus === 'error' && (
-                            <p className="mt-2 text-sm text-red-100">{applyError || 'שגיאה בשליחת המועמדות. נסה שוב.'}</p>
+                            <p role="alert" className="mt-2 text-sm text-red-100">{applyError || 'שגיאה בשליחת המועמדות. נסה שוב.'}</p>
+                         )}
+                         {applyStatus === 'applied' && (
+                            <div className="mt-4 space-y-3 text-right">
+                                <button type="button" onClick={shareWithParent} className="w-full bg-green-500 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors">שתף עם ההורה בוואטסאפ</button>
+                                <p className="text-xs opacity-90">ההורה מקבל גם עדכון במייל על כל מועמדות.</p>
+                                <div className="text-gray-800">
+                                    <EmploymentPrepChecklist role="teen" compact done={[...(teen?.parentalConsentStatus === 'approved' ? ['consent'] : []), ...(teen?.idNumber && teen?.address ? ['form101'] : [])]} />
+                                </div>
+                            </div>
                          )}
                      </div>
                 </div>

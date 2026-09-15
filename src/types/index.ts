@@ -15,15 +15,19 @@ export interface UserProfile {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   lastLogin: Timestamp;
-  status: 'active' | 'disabled';
+  status: 'active' | 'verified' | 'blocked' | 'pending' | 'disabled';
   termsAcceptedAt?: Timestamp | unknown;
   termsVersion?: string;
+  isTestAccount?: boolean;
 }
 
 export interface TeenProfile extends UserProfile {
   role: 'teen';
   name: string;
   age?: number;
+  /** Derived by the onUserWritten Cloud Function from birthDate. */
+  ageVerified?: boolean;
+  youthBand?: 'under16' | 'age16' | 'age17' | 'adult';
   idNumber?: string;
   location?: string;
   address?: string;
@@ -94,6 +98,10 @@ export interface Job {
   applicantsCount?: number;
   distance?: number;
   employerId?: string;
+  /** Youth-law fields (required by firestore.rules for new/edited jobs). */
+  minAge?: 14 | 15 | 16 | 17;
+  youthLawAck?: boolean;
+  status?: 'open' | 'closed';
 }
 
 export interface Applicant {

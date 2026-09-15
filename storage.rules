@@ -25,5 +25,22 @@ service firebase.storage {
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('(application/pdf|image/(jpeg|png))');
     }
+
+    match /cvs/{uid}/{filename} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('(application/pdf|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document)');
+    }
+
+    // צילום תעודת זהות + ספח (נדרש לטופס 101) — מסמך רגיש, קריא לבעליו בלבד
+    match /idDocs/{uid}/{filename} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('(application/pdf|image/(jpeg|png|webp))');
+    }
   }
 }

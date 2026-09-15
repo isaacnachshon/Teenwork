@@ -13,7 +13,9 @@ import {
 import { doc, setDoc, getDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import LegalModal from '@/components/LegalModal';
-import { calcAge, isYouthAge, YOUTH_AGE_ERROR, TERMS_VERSION } from '@/utils/age';
+import { isYouthAge, YOUTH_AGE_ERROR, TERMS_VERSION, dobBounds } from '@/utils/age';
+
+const DOB = dobBounds();
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -150,13 +152,14 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                     await uploadBytes(storageRef, profileImage);
                     profileImageUrl = await getDownloadURL(storageRef);
                 } catch (uploadErr) {
-                    await deleteUser(user);
-                    throw new Error('העלאת התמונה נכשלה.');
+                    // Storage may be unavailable (not enabled on the project yet); the image is optional,
+                    // so continue the signup without it instead of deleting the account.
+                    console.warn('Profile image upload failed; continuing without image.', uploadErr);
+                    profileImageUrl = '';
                 }
             }
 
             try {
-                const age = calcAge(birthDate);
                 const userDocData: Record<string, any> = {
                     uid: user.uid,
                     displayName: fullName,
@@ -167,7 +170,6 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                     phone: '',
                     city: '',
                     birthDate,
-                    age,
                     profileCompleted: false,
                     status: 'active',
                     profileImageUrl,
@@ -276,7 +278,6 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                         lastLogin: serverTimestamp(),
                     });
                 } else {
-                    const age = calcAge(birthDate);
                     const display = fullName.trim() || user.displayName || '';
                     await setDoc(userDocRef, {
                         uid: user.uid,
@@ -289,7 +290,6 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                         phone: '',
                         city: '',
                         birthDate,
-                        age,
                         profileCompleted: false,
                         status: 'active',
                         skills: [],
@@ -314,14 +314,12 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                 }
                 // Existing teen without DOB: if signup form filled, complete now.
                 if (!userData.birthDate && authMode === 'signup') {
-                    const age = calcAge(birthDate);
+                    // parentalConsentStatus/age are server-managed (rules lock them); the approval trigger sets pending.
                     await setDoc(userDocRef, {
                         birthDate,
-                        age,
                         parentName: parentName.trim(),
                         parentEmail: parentEmail.trim(),
                         parentPhone: parentPhone.trim(),
-                        parentalConsentStatus: userData.parentalConsentStatus || 'pending',
                         termsAcceptedAt: serverTimestamp(),
                         termsVersion: TERMS_VERSION,
                         updatedAt: serverTimestamp(),
@@ -429,7 +427,7 @@ const TeenLoginPage: React.FC<TeenLoginPageProps> = ({ onBack }) => {
                         </div>
                         <div>
                             <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">תאריך לידה</label>
-                            <input id="birthDate" name="birthDate" type="date" required value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                            <input id="birthDate" name="birthDate" type="date" required min={DOB.min} max={DOB.max} value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                             <p className="text-xs text-gray-400 mt-1">הפלטפורמה מיועדת לגילאי 14–18 בלבד</p>
                         </div>
                         <div>

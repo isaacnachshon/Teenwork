@@ -1,7 +1,7 @@
 export type DashRole = 'admin' | 'employer' | 'teen';
-export type TabKey = 'overview' | 'users' | 'connections' | 'chat' | 'profile' | 'settings' | 'ai';
+export type TabKey = 'overview' | 'jobs' | 'rankings' | 'users' | 'reports' | 'connections' | 'chat' | 'profile' | 'settings' | 'ai';
 export type ConnStatus = 'pending' | 'active' | 'completed' | 'rejected';
-export type UserStatus = 'verified' | 'pending' | 'blocked';
+export type UserStatus = 'active' | 'verified' | 'pending' | 'blocked';
 
 export interface StatusMeta {
   label: string;
@@ -21,6 +21,7 @@ export const CONN_STATUS: Record<ConnStatus, StatusMeta> = {
 };
 
 export const USER_STATUS: Record<UserStatus, UserStatusMeta> = {
+  active: { label: 'פעיל (לא אומת)', color: '#4E5BD6', bg: '#EAECFE', icon: 'user' },
   verified: { label: 'מאומת', color: '#0E8A48', bg: '#E4F5EA', icon: 'check' },
   pending: { label: 'ממתין לאימות', color: '#B5740A', bg: '#FBF0DA', icon: 'clock' },
   blocked: { label: 'חסום', color: '#C8364A', bg: '#FBE7EA', icon: 'ban' },
@@ -45,4 +46,3 @@ export function initial(name: string): string {
   const n = (name || '').trim();
   return n ? n[0] : '?';
 }
-

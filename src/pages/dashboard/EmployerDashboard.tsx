@@ -8,6 +8,11 @@ import { db, auth } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { geocodeLocation } from '@/utils/geocode';
 import JobMap from '@/components/JobMap';
+import { ReputationService } from '@/services/ReputationService';
+import { JobService } from '@/services/JobService';
+import JobRightsPanel from '@/components/JobRightsPanel';
+import EmploymentPrepChecklist from '@/components/EmploymentPrepChecklist';
+import { validateJob, minWageForMinAge, MIN_AGE_OPTIONS, YOUTH_WAGE, type JobMinAge } from '@/utils/youthLaw';
 
 interface RecentApplicant {
   applicationId: string;
@@ -21,10 +26,12 @@ interface RecentApplicant {
 
 interface EmployerDashboardProps {
   onLogout: () => void;
+  embedded?: boolean;
 }
 
 const allJobTypes: Job['type'][] = ['קייטרינג', 'ניקיון', 'בייביסיטר', 'שיעורים', 'מלצרות', 'סבלות'];
-const weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+// שבת is excluded on purpose: youth may not work on the weekly rest day (firestore.rules rejects it too).
+const weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי'];
 
 type FormData = {
   title: string;
@@ -37,6 +44,8 @@ type FormData = {
   salary: number | string;
   skills: string[];
   experience: string;
+  minAge: JobMinAge;
+  youthLawAck: boolean;
 };
 
 const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode }> = ({ title, value, icon }) => (
@@ -51,8 +60,8 @@ const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode }
 
 const PostJobModal: React.FC<{
   onClose: () => void,
-  onPostJob: (job: Job) => void,
-  onUpdateJob: (jobId: string, job: Partial<Job>) => void,
+  onPostJob: (job: Job) => Promise<void>,
+  onUpdateJob: (jobId: string, job: Partial<Job>) => Promise<void>,
   employerProfile: any,
   editingJob?: Job | null
 }> = ({ onClose, onPostJob, onUpdateJob, employerProfile, editingJob }) => {
@@ -67,7 +76,9 @@ const PostJobModal: React.FC<{
     endTime: editingJob.endTime || '17:00',
     salary: editingJob.salary,
     skills: editingJob.skills || [],
-    experience: editingJob.experience || 'ללא ניסיון'
+    experience: editingJob.experience || 'ללא ניסיון',
+    minAge: (editingJob.minAge || 16) as JobMinAge,
+    youthLawAck: false,
   } : {
     title: '',
     description: '',
@@ -78,9 +89,13 @@ const PostJobModal: React.FC<{
     endTime: '17:00',
     salary: '',
     skills: [],
-    experience: 'ללא ניסיון'
+    experience: 'ללא ניסיון',
+    minAge: 16,
+    youthLawAck: false,
   });
   const [currentSkill, setCurrentSkill] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -112,8 +127,26 @@ const PostJobModal: React.FC<{
   const nextStep = () => setCurrentStep(prev => prev < 4 ? prev + 1 : prev);
   const prevStep = () => setCurrentStep(prev => prev > 1 ? prev - 1 : prev);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    if (currentStep !== 4) { nextStep(); return; }
+    if (!formData.title.trim() || !formData.description.trim() || !formData.location.trim() || !formData.jobTypes.length || !formData.days.length || !Number.isFinite(Number(formData.salary)) || Number(formData.salary) <= 0) {
+      setSaveError('יש למלא שם, תיאור, מיקום, סוג עבודה, ימי עבודה ושכר חיובי.');
+      return;
+    }
+    const issues = validateJob({ salary: Number(formData.salary), minAge: formData.minAge, startTime: formData.startTime, endTime: formData.endTime, days: formData.days });
+    if (issues.length) {
+      setSaveError(issues.map(i => i.message).join(' '));
+      return;
+    }
+    if (!formData.youthLawAck) {
+      setSaveError('יש לאשר שקראת את חובות המעסיק לפי חוק עבודת הנוער.');
+      return;
+    }
+    setSaving(true);
+    setSaveError('');
+    try {
 
     if (editingJob) {
       const updatedJobData = {
@@ -127,17 +160,20 @@ const PostJobModal: React.FC<{
         endTime: formData.endTime,
         skills: formData.skills,
         experience: formData.experience,
+        minAge: formData.minAge,
+        youthLawAck: true,
+        status: editingJob.status || 'open',
       };
 
-      onUpdateJob(editingJob.id, updatedJobData as Partial<Job>);
+      await onUpdateJob(editingJob.id, updatedJobData as Partial<Job>);
       onClose();
       return;
     }
 
     const newJobData = {
       title: formData.title,
-      company: employerProfile?.companyName || "My Awesome Company", // Ideally fetch from profile
-      companyLogoUrl: employerProfile?.profileImageUrl || employerProfile?.companyLogoUrl,
+      company: employerProfile?.companyName || employerProfile?.name || 'העסק שלי',
+      companyLogoUrl: employerProfile?.profileImageUrl || employerProfile?.companyLogoUrl || '',
       location: formData.location,
       salary: Number(formData.salary),
       type: formData.jobTypes[0] || 'מלצרות',
@@ -147,24 +183,32 @@ const PostJobModal: React.FC<{
       endTime: formData.endTime,
       skills: formData.skills,
       experience: formData.experience,
+      minAge: formData.minAge,
+      youthLawAck: true,
+      status: 'open',
       applicantsCount: 0,
       employerId: auth.currentUser?.uid,
       createdAt: serverTimestamp(),
     };
 
     // Pass the data to the parent handler which will do the async save
-    onPostJob(newJobData as any);
+    await onPostJob(newJobData as any);
     onClose();
+    } catch {
+      setSaveError('שמירת המשרה נכשלה. הפרטים נשמרו בטופס, ניתן לנסות שוב.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const totalSteps = 4;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl transform transition-all animate-in fade-in-0 zoom-in-95 duration-300">
+      <div role="dialog" aria-modal="true" aria-label={editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto transform transition-all animate-in fade-in-0 zoom-in-95 duration-300">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold text-gray-800">{editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button disabled={saving} aria-label="סגור" onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <XIcon className="w-6 h-6" />
           </button>
         </div>
@@ -175,6 +219,7 @@ const PostJobModal: React.FC<{
         </div>
 
         <form onSubmit={handleSubmit}>
+          {saveError && <p role="alert" className="text-red-600 mb-4">{saveError}</p>}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in-0 duration-300">
               <div>
@@ -184,6 +229,21 @@ const PostJobModal: React.FC<{
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">תיאור המשרה</label>
                 <textarea name="description" value={formData.description} onChange={handleInputChange} rows={4} placeholder="פרטים על המשרה, דרישות, וכו'..." className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">גיל מינימלי למועמדים</label>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="גיל מינימלי">
+                  {MIN_AGE_OPTIONS.map(age => (
+                    <button type="button" key={age} role="radio" aria-checked={formData.minAge === age} onClick={() => setFormData(prev => ({ ...prev, minAge: age }))} className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${formData.minAge === age ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100'}`}>{age}+</button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.minAge === 14
+                    ? 'בגיל 14 מותרת עבודה קלה בחופשות הלימודים בלבד, בין 08:00 ל-20:00.'
+                    : formData.minAge < 16
+                      ? 'מתחת לגיל 16 מותר להעסיק רק בין 08:00 ל-20:00.'
+                      : 'בגילאי 16–18 מותר להעסיק רק בין 06:00 ל-22:00.'}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">סוג/י העבודה</label>
@@ -219,13 +279,18 @@ const PostJobModal: React.FC<{
                   <input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
+              <p className="text-xs text-gray-500">לנוער: עד 8 שעות ביום, ללא עבודה בשבת, ובטווח השעות המותר לגיל שבחרת.</p>
             </div>
           )}
           {currentStep === 3 && (
             <div className="space-y-6 animate-in fade-in-0 duration-300">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">שכר לשעה (בש"ח)</label>
-                <input type="number" name="salary" value={formData.salary} onChange={handleInputChange} placeholder="45" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <input type="number" name="salary" value={formData.salary} onChange={handleInputChange} placeholder="45" min={minWageForMinAge(formData.minAge)} step="0.01" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <p className={`text-xs mt-1 ${Number(formData.salary) > 0 && Number(formData.salary) < minWageForMinAge(formData.minAge) ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                  שכר מינימום לנוער לגיל {formData.minAge}: ₪{minWageForMinAge(formData.minAge).toFixed(2)} לשעה (נכון ל-{YOUTH_WAGE.effectiveDate.slice(5, 7)}/{YOUTH_WAGE.effectiveDate.slice(0, 4)}).
+                  {formData.minAge < 17 && ` אם תעסיק בני 17 — לפחות ₪${YOUTH_WAGE.age17.toFixed(2)}.`}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">כישורים נדרשים</label>
@@ -264,8 +329,15 @@ const PostJobModal: React.FC<{
                 <p><strong>שכר:</strong> {formData.salary} ₪ לשעה</p>
                 <p><strong>כישורים:</strong> {formData.skills.join(', ') || 'לא צוין'}</p>
                 <p><strong>ניסיון:</strong> {formData.experience}</p>
+                <p><strong>גיל מינימלי:</strong> {formData.minAge}+</p>
                 <p><strong>תיאור:</strong> {formData.description || 'לא צוין'}</p>
               </div>
+              <JobRightsPanel mode="employer" job={{ salary: Number(formData.salary), minAge: formData.minAge, startTime: formData.startTime, endTime: formData.endTime, days: formData.days }} />
+              <EmploymentPrepChecklist role="employer" compact collapsible />
+              <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="youthLawAck" checked={formData.youthLawAck} onChange={(e) => setFormData(prev => ({ ...prev, youthLawAck: e.target.checked }))} className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span>קראתי את חובות המעסיק לפי חוק עבודת הנוער ואני מתחייב/ת לעמוד בהן (שכר לפי גיל, שעות, אישור רפואי, טופס 101, הודעה בכתב, תלוש).</span>
+              </label>
               <p className="text-sm text-gray-500">בדיקה אחרונה לפני הפרסום. ניתן לחזור אחורה ולתקן במידת הצורך.</p>
             </div>
           )}
@@ -276,9 +348,9 @@ const PostJobModal: React.FC<{
             ) : <div></div>}
 
             {currentStep < 4 ? (
-              <button type="button" onClick={nextStep} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">הבא</button>
+              <button key="next" type="button" onClick={nextStep} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">הבא</button>
             ) : (
-              <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">{editingJob ? 'שמור שינויים' : 'פרסם משרה'}</button>
+              <button key="save" type="submit" disabled={saving} className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">{saving ? 'שומר...' : editingJob ? 'שמור שינויים' : 'פרסם משרה'}</button>
             )}
           </div>
         </form>
@@ -296,6 +368,7 @@ const PostedJobCard: React.FC<{ job: Job; onViewApplicants: (job: Job) => void; 
         <div className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {job.days?.join(', ')}</div>
         <div className="flex items-center gap-1.5"><ClockIcon className="w-4 h-4" /> {job.startTime} - {job.endTime}</div>
       </div>
+      <div className="mt-2"><JobRightsPanel mode="card" job={job} /></div>
     </div>
     <div className="flex-shrink-0 flex sm:flex-col items-end justify-between sm:justify-center gap-2">
       <div className="flex items-center gap-2 text-blue-600 font-semibold">
@@ -313,11 +386,12 @@ const PostedJobCard: React.FC<{ job: Job; onViewApplicants: (job: Job) => void; 
 
 type View = 'dashboard' | 'profile' | 'applicants' | 'applicantProfile';
 
-const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
+const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedded = false }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [employerProfile, setEmployerProfile] = useState<any>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [selectedJobForApplicants, setSelectedJobForApplicants] = useState<Job | null>(null);
@@ -327,9 +401,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
   // Fetch jobs from Firestore - AND Profile
   const fetchData = async () => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) { setIsLoading(false); setLoadError('יש להתחבר כדי לנהל משרות.'); return; }
 
     setIsLoading(true);
+    setLoadError('');
     try {
       // Fetch Profile
       const userDocRef = doc(db, 'users', user.uid);
@@ -368,16 +443,13 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
       const fetchedApplicants = await Promise.all(applicationDocs.map(async (appDoc) => {
         const data = appDoc.data();
         let name = 'מועמד/ת';
-        let age: number | undefined;
+        const age: number | undefined = typeof data.teenAge === 'number' ? data.teenAge : undefined;
         let profileImageUrl: string | undefined;
 
         try {
-          const applicantDoc = await getDoc(doc(db, 'users', data.applicantId));
-          if (applicantDoc.exists()) {
-            const applicantData = applicantDoc.data();
+          const applicantData = await ReputationService.profile(data.applicantId);
+          if (applicantData) {
             name = applicantData.name || name;
-            age = applicantData.age;
-            profileImageUrl = applicantData.profileImageUrl;
           }
         } catch (error) {
           console.error('Error fetching applicant profile:', error);
@@ -397,6 +469,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
       setRecentApplicants(fetchedApplicants);
     } catch (error) {
       console.error("Error fetching data:", error);
+      setLoadError('לא ניתן לטעון את המשרות. נסה שוב.');
     } finally {
       setIsLoading(false);
     }
@@ -414,11 +487,12 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
           newJobData.coordinates = coords;
         }
       }
-      await addDoc(collection(db, 'jobs'), newJobData);
+      await JobService.create(newJobData);
       fetchData();
     } catch (error) {
       console.error("Error adding job:", error);
       alert("שגיאה בפרסום המשרה");
+      throw error;
     }
   };
 
@@ -430,11 +504,12 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
           (updatedData as any).coordinates = coords;
         }
       }
-      await updateDoc(doc(db, 'jobs', jobId), updatedData as any);
+      await JobService.update(jobId, updatedData as any);
       fetchData();
     } catch (error) {
       console.error("Error updating job:", error);
       alert("שגיאה בעדכון המשרה");
+      throw error;
     }
   };
 
@@ -499,7 +574,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
     <>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">לוח בקרה</h1>
+          <h1 className="text-3xl font-bold text-gray-800">ניהול משרות</h1>
           <p className="text-gray-500 mt-1">ניהול משרות ומועמדים בקלות וביעילות.</p>
         </div>
         <div className="flex items-center gap-4">
@@ -512,8 +587,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         <StatCard title="משרות פעילות" value={jobs.length.toString()} icon={<BriefcaseIcon className="w-6 h-6 text-blue-600" />} />
-        <StatCard title="מועמדים חדשים" value="12" icon={<UserIcon className="w-6 h-6 text-blue-600" />} />
-        <StatCard title="תשלומים החודש" value="3,200 ₪" icon={<DollarSignIcon className="w-6 h-6 text-blue-600" />} />
+      </section>
+
+      <section className="mb-10">
+        <EmploymentPrepChecklist role="employer" collapsible />
       </section>
 
       {jobs.length > 0 && (
@@ -615,7 +692,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className={embedded ? 'bg-gray-50' : 'flex min-h-screen bg-gray-50'}>
       {isModalOpen && (
         <PostJobModal
           onClose={() => { setIsModalOpen(false); setEditingJob(null); }}
@@ -625,7 +702,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
           editingJob={editingJob}
         />
       )}
-      <nav className="w-64 bg-white p-6 shadow-lg flex-shrink-0 hidden md:flex flex-col">
+      {!embedded && <nav className="w-64 bg-white p-6 shadow-lg flex-shrink-0 hidden md:flex flex-col">
         <div className="flex items-center gap-3 mb-8">
           <img src={employerProfile?.profileImageUrl || employerProfile?.companyLogoUrl || "https://picsum.photos/id/1040/100/100"} alt="לוגו חברה" className="w-12 h-12 rounded-full border-2 border-blue-500 object-cover" />
           <div>
@@ -646,10 +723,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout }) => {
             <span>התנתקות</span>
           </button>
         </div>
-      </nav>
+      </nav>}
 
       <main className="flex-1 p-6 md:p-10">
-        {renderContent()}
+        {isLoading ? <p role="status">טוען משרות...</p> : loadError ? <div role="alert">{loadError}<button onClick={fetchData}>נסה שוב</button></div> : renderContent()}
       </main>
     </div>
   );

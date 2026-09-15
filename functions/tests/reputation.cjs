@@ -1,0 +1,33 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const admin=require('firebase-admin');
+admin.initializeApp({projectId:'demo-teenwork'});
+const db=admin.firestore();
+let relation=true;
+let data={'users/e':{role:'employer'},'users/t':{role:'teen',name:'Test',idNumber:'secret',bankAccountNumber:'secret'},'applications/a':{employerId:'e',applicantId:'t',status:'completed'}};
+let written;
+db.doc=p=>({path:p,get:async()=>({data:()=>data[p]})});
+db.collection=()=>{const q={where:()=>q,limit:()=>q,get:async()=>({empty:!relation})};return q;};
+db.runTransaction=async fn=>fn({get:ref=>ref.get(),set:(ref,value)=>{written={path:ref.path,value}}});
+const {getRelatedProfile,submitRating}=require('../lib/reputation');
+test('profile denies unrelated users and excludes private fields',async()=>{
+ await assert.rejects(getRelatedProfile.run({data:{userId:'t'}}));
+ relation=false;
+ await assert.rejects(getRelatedProfile.run({auth:{uid:'e'},data:{userId:'t'}}));
+ relation=true;
+ const p=await getRelatedProfile.run({auth:{uid:'e'},data:{userId:'t'}});
+ assert.equal(p.name,'Test');assert.equal(p.idNumber,undefined);assert.equal(p.bankAccountNumber,undefined);
+});
+test('ratings require completed employment and reuse a unique rating key',async()=>{
+ await assert.rejects(submitRating.run({auth:{uid:'stranger'},data:{applicationId:'a',score:5}}));
+ await assert.rejects(submitRating.run({auth:{uid:'e'},data:{applicationId:'a',score:6}}));
+ data['applications/a'].status='new';
+ await assert.rejects(submitRating.run({auth:{uid:'e'},data:{applicationId:'a',score:5}}));
+ data['applications/a'].status='completed';
+ await submitRating.run({auth:{uid:'e'},data:{applicationId:'a',score:5}});
+ assert.equal(written.path,'ratings/a_e');assert.equal(written.value.targetId,'t');
+ await submitRating.run({auth:{uid:'e'},data:{applicationId:'a',score:4}});
+ assert.equal(written.path,'ratings/a_e');assert.equal(written.value.score,4);
+ await submitRating.run({auth:{uid:'t'},data:{applicationId:'a',score:3}});
+ assert.equal(written.path,'ratings/a_t');assert.equal(written.value.targetId,'e');
+});

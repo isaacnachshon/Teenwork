@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Job } from '@/types';
-import { db } from '@/firebase';
+import { db, auth } from '@/firebase';
+import { ReputationService } from '@/services/ReputationService';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ChevronLeftIcon, UserIcon } from '@/components/icons';
 
@@ -9,6 +10,7 @@ interface JobApplicant {
     applicantId: string;
     name: string;
     age?: number;
+    consentVerified?: boolean;
     profileImageUrl?: string;
     status: string;
 }
@@ -56,22 +58,22 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
         const fetchApplicants = async () => {
             setIsLoading(true);
             try {
-                const q = query(collection(db, 'applications'), where('jobId', '==', job.id));
+                if (!auth.currentUser) throw new Error('Login required');
+                const q = query(collection(db, 'applications'), where('jobId', '==', job.id), where('employerId', '==', auth.currentUser.uid));
                 const snapshot = await getDocs(q);
 
                 const results = await Promise.all(snapshot.docs.map(async (appDoc) => {
                     const data = appDoc.data();
                     let name = 'מועמד/ת';
-                    let age: number | undefined;
+                    // Stamped by the onApplicationCreated Cloud Function (the profile callable never returns age).
+                    const age: number | undefined = typeof data.teenAge === 'number' ? data.teenAge : undefined;
+                    const consentVerified: boolean | undefined = typeof data.consentVerified === 'boolean' ? data.consentVerified : undefined;
                     let profileImageUrl: string | undefined;
 
                     try {
-                        const userDoc = await getDoc(doc(db, 'users', data.applicantId));
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data();
+                        const userData = await ReputationService.profile(data.applicantId);
+                        if (userData) {
                             name = userData.name || name;
-                            age = userData.age;
-                            profileImageUrl = userData.profileImageUrl;
                         }
                     } catch (error) {
                         console.error('Error fetching applicant profile:', error);
@@ -82,6 +84,7 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
                         applicantId: data.applicantId,
                         name,
                         age,
+                        consentVerified,
                         profileImageUrl,
                         status: data.status || 'new',
                     };
@@ -127,7 +130,14 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
                                 />
                                 <div>
                                     <p className="font-bold text-gray-800">{applicant.name}</p>
-                                    {applicant.age !== undefined && <p className="text-sm text-gray-500">גיל {applicant.age}</p>}
+                                    <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                                        {applicant.age !== undefined && <span>גיל {applicant.age}</span>}
+                                        {applicant.consentVerified !== undefined && (
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${applicant.consentVerified ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {applicant.consentVerified ? 'אישור הורים ✓' : 'ללא אישור הורים'}
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">

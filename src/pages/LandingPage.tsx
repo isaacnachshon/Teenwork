@@ -22,26 +22,12 @@ interface LandingPageProps {
     onRoleSelect: (role: 'teen' | 'employer' | 'admin' | 'about') => void;
 }
 
-const partners = [
-    { name: 'קסטרו', logo: 'https://img.logoipsum.com/296.svg' },
-    { name: 'גולדה', logo: 'https://img.logoipsum.com/297.svg' },
-    { name: 'סינמה סיטי', logo: 'https://img.logoipsum.com/298.svg' },
-    { name: 'פיצה האט', logo: 'https://img.logoipsum.com/299.svg' },
-    { name: 'WeClean', logo: 'https://img.logoipsum.com/300.svg' },
-    { name: 'השף המעופף', logo: 'https://img.logoipsum.com/289.svg' },
-];
-
 const categories = [
     { name: 'מלצרות ואירועים', icon: <UtensilsCrossedIcon className="w-8 h-8" />, color: 'text-purple-500', bg: 'bg-purple-50' },
     { name: 'בייביסיטר', icon: <BabyIcon className="w-8 h-8" />, color: 'text-pink-500', bg: 'bg-pink-50' },
     { name: 'שיעורים פרטיים', icon: <BookOpenTextIcon className="w-8 h-8" />, color: 'text-blue-500', bg: 'bg-blue-50' },
     { name: 'חנויות ומכירות', icon: <StoreIcon className="w-8 h-8" />, color: 'text-green-500', bg: 'bg-green-50' },
     { name: 'ניקיון וסדר', icon: <DropletsIcon className="w-8 h-8" />, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-];
-
-const testimonials = [
-    { name: 'מאיה כהן', role: 'נערה, 16 — תל אביב', quote: 'מצאתי לקוחה לבייביסיטינג ומשמרת קייטרינג בשבוע אחד. הרווחתי ₪2,200 ב-3 שבועות והפסקתי לבקש כסף מאמא.', image: 'https://picsum.photos/id/1005/100/100' },
-    { name: 'שרה לוי', role: 'בעלת קייטרינג', quote: 'פרסמתי משרה ביום ראשון ועד יום רביעי כבר היה לי עובד איכותי. TEENWORK חסכה לי שעות של חיפוש.', image: 'https://picsum.photos/id/1027/100/100' },
 ];
 
 const CategoryCard: React.FC<{ category: typeof categories[0] }> = ({ category }) => (
@@ -63,26 +49,11 @@ const HowItWorksStep: React.FC<{ icon: React.ReactNode; title: string; descripti
     </div>
 );
 
-const TestimonialCard: React.FC<{ testimonial: typeof testimonials[0] }> = ({ testimonial }) => (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
-        <div className="flex items-center mb-4">
-            <img src={testimonial.image} alt={testimonial.name} className="w-14 h-14 rounded-full mr-4" />
-            <div>
-                <p className="font-bold text-gray-800">{testimonial.name}</p>
-                <p className="text-sm text-gray-500">{testimonial.role}</p>
-            </div>
-        </div>
-        <div className="flex mb-2">
-            {[...Array(5)].map((_, i) => <StarIcon key={i} className="w-5 h-5 text-yellow-400" />)}
-        </div>
-        <p className="text-gray-600 italic">"{testimonial.quote}"</p>
-    </div>
-);
-
 const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
     const [howItWorksView, setHowItWorksView] = useState<'teen' | 'employer'>('teen');
     const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
-    const [showRightsModal, setShowRightsModal] = useState(false);
+    // ?rights=1 opens the public rights center directly (deep link for QA / emails).
+    const [showRightsModal, setShowRightsModal] = useState(() => new URLSearchParams(window.location.search).get('rights') === '1');
 
     return (
         <div className="bg-white text-gray-800 font-sans">
@@ -92,7 +63,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#categories" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">קטגוריות</a>
                         <a href="#how-it-works" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">איך זה עובד</a>
-                        <a href="#testimonials" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">המלצות</a>
                         <button onClick={() => onRoleSelect('about')} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">אודות</button>
                         <button onClick={() => setShowRightsModal(true)} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">זכויות נוער</button>
                     </div>
@@ -109,11 +79,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     <div className="container mx-auto">
                         <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 text-sm font-bold px-4 py-2 rounded-full mb-6 animate-in fade-in-0 duration-500">
                             <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                            143 נרשמו השבוע · 89 כבר עובדים
+                            פלטפורמה חינמית לנוער 14–18 · בהתאם לחוק עבודת הנוער
                         </div>
                         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 leading-tight animate-in fade-in-0 slide-in-from-top-4 duration-500">
-                            47 משרות בטווח 5 ק"מ ממך.<br />
-                            <span className="text-purple-600">ואתה עדיין גולל.</span>
+                            עבודה לנוער — קרוב לבית,<br />
+                            <span className="text-purple-600">לפי החוק.</span>
                         </h1>
                         <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto animate-in fade-in-0 duration-500 delay-100">
                             TEENWORK מוצאת לבני נוער גילאי 14–18 עבודה חלקית — לפי מרחק הליכה, יום ושעה.<br className="hidden md:block" />
@@ -154,21 +124,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     </div>
                 </section>
 
-                {/* Partners Section */}
-                <section className="py-12 bg-white">
-                    <div className="container mx-auto text-center">
-                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">מגייסים אצלנו</h3>
-                        <div className="w-full mt-6 inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_1rem,_black_calc(100%-1rem),transparent_100%)]">
-                            <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8 animate-infinite-scroll">
-                                {partners.map((p, i) => <li key={i}><img src={p.logo} alt={p.name} className="max-h-8" /></li>)}
-                            </ul>
-                            <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8 animate-infinite-scroll" aria-hidden="true">
-                                {partners.map((p, i) => <li key={i}><img src={p.logo} alt={p.name} className="max-h-8" /></li>)}
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
                 {/* Categories Section */}
                 <section id="categories" className="py-20 px-4 bg-gray-50">
                     <div className="container mx-auto text-center">
@@ -202,16 +157,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                                     <HowItWorksStep icon={<StarOutlineIcon className="w-8 h-8" />} title="3. מגייסים את הטובים ביותר" description="צרו קשר עם המועמדים המתאימים וגייסו עובדים חדשים לעסק." />
                                 </>
                             )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Testimonials Section */}
-                <section id="testimonials" className="py-20 px-4 bg-gray-50">
-                    <div className="container mx-auto">
-                        <h2 className="text-3xl font-bold text-gray-800 text-center">מה אומרים עלינו?</h2>
-                        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                            {testimonials.map(t => <TestimonialCard key={t.name} testimonial={t} />)}
                         </div>
                     </div>
                 </section>

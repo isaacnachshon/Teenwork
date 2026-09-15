@@ -3,6 +3,7 @@ import {
   query, where, serverTimestamp, getDoc,
 } from 'firebase/firestore';
 import { db } from '@/firebase/firestore';
+import { auth } from '@/firebase';
 
 export type ApplicationStatus = 'new' | 'viewed' | 'contacted' | 'interview' | 'accepted' | 'rejected' | 'completed';
 
@@ -46,7 +47,8 @@ export const ApplicationService = {
   },
 
   async getByJob(jobId: string): Promise<ApplicationDoc[]> {
-    const snap = await getDocs(query(collection(db, 'applications'), where('jobId', '==', jobId)));
+    if (!auth.currentUser) throw new Error('Login required');
+    const snap = await getDocs(query(collection(db, 'applications'), where('jobId', '==', jobId), where('employerId', '==', auth.currentUser.uid)));
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as ApplicationDoc));
   },
 

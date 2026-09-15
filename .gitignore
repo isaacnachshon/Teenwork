@@ -31,3 +31,8 @@ functions/node_modules/
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright / test artifacts
+test-results/
+functions/test-results/
+*.patch

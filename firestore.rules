@@ -2,34 +2,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isLoggedIn() {
-      return request.auth != null;
+    // Youth-law literals — MUST match src/utils/youthLaw.ts and functions/src/youthLaw.ts:
+    //   Min hourly wage (effective 2026-04-01): minAge 14–15 → 26.07 | 16 → 27.94 | 17 → 30.92
+    //   Shift ≤ 8h. Night: minAge<16 only 08:00–20:00; 16+ only 06:00–22:00. No Saturday.
+    //   Age 14 may apply only in July–August or when settings/app.vacationActive == true.
+    //   Required termsVersion '2'.
+
+    function isLoggedIn() { return request.auth != null; }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function hasProfile() { return isLoggedIn() && exists(userPath(request.auth.uid)); }
+    function me() { return get(userPath(request.auth.uid)).data; }
+    function isAdmin() { return hasProfile() && me().role == 'admin'; }
+    function isEmployer() { return hasProfile() && me().role == 'employer' && me().status != 'blocked'; }
+    function isTeen() { return hasProfile() && me().role == 'teen' && me().status != 'blocked'; }
+    function isOwnUser(userId) { return isLoggedIn() && request.auth.uid == userId; }
+    function affected() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    function validBirthDate(bd) {
+      return bd is string && bd.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    function ageOf(bd) {
+      let y = int(bd[0:4]);
+      let m = int(bd[5:7]);
+      let d = int(bd[8:10]);
+      let t = request.time;
+      return t.year() - y - ((t.month() < m || (t.month() == m && t.day() < d)) ? 1 : 0);
+    }
+    function isYouthAge(bd) { return validBirthDate(bd) && ageOf(bd) >= 14 && ageOf(bd) <= 18; }
+    function youthMinWage(minAge) { return minAge < 16 ? 26.07 : (minAge < 17 ? 27.94 : 30.92); }
+    function validTime(s) { return s is string && s.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'); }
+    function minutesOf(hhmm) { return int(hhmm[0:2]) * 60 + int(hhmm[3:5]); }
+    function vacationActive() {
+      return request.time.month() == 7 || request.time.month() == 8
+        || (exists(/databases/$(database)/documents/settings/app)
+            && get(/databases/$(database)/documents/settings/app).data.get('vacationActive', false) == true);
     }
 
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-
-    function isAdmin() {
-      return isLoggedIn() && getUserRole() == 'admin';
-    }
-
-    function isEmployer() {
-      return isLoggedIn() && getUserRole() == 'employer';
-    }
-
-    function isTeen() {
-      return isLoggedIn() && getUserRole() == 'teen';
-    }
-
-    function isOwnUser(userId) {
-      return isLoggedIn() && request.auth.uid == userId;
+    function lockedUserKeys() {
+      return ['uid', 'email', 'role', 'status', 'parentalConsentStatus', 'parentalConsentReviewedAt',
+              'age', 'ageVerified', 'youthBand', 'isTestAccount', 'createdAt'];
     }
 
     match /users/{userId} {
-      allow read: if isLoggedIn() && (isAdmin() || isOwnUser(userId));
-      allow create: if isOwnUser(userId);
-      allow update: if isAdmin() || isOwnUser(userId);
+      allow read: if isAdmin() || isOwnUser(userId);
+      allow create: if isOwnUser(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.role in ['teen', 'employer']
+        && request.resource.data.status == 'active'
+        && !request.resource.data.keys().hasAny(['age', 'ageVerified', 'youthBand', 'isTestAccount', 'parentalConsentReviewedAt'])
+        && (request.resource.data.role == 'employer'
+            || (request.resource.data.parentalConsentStatus == 'pending'
+                && (request.resource.data.get('birthDate', '') == ''
+                    || isYouthAge(request.resource.data.birthDate))));
+      allow update: if isAdmin()
+        || (isOwnUser(userId)
+            && resource.data.status != 'blocked'
+            && !affected().hasAny(lockedUserKeys())
+            && (!('birthDate' in affected())
+                || (resource.data.get('birthDate', '') == ''
+                    && isYouthAge(request.resource.data.birthDate))));
       allow delete: if isAdmin();
     }
 
@@ -40,40 +71,93 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    function validJob(j) {
+      return j.employerId is string
+        && j.title is string && j.title.size() > 0
+        && j.type is string
+        && j.salary is number
+        && j.minAge is int && j.minAge in [14, 15, 16, 17]
+        && j.salary >= youthMinWage(j.minAge)
+        && validTime(j.startTime) && validTime(j.endTime)
+        && j.startTime < j.endTime
+        && (minutesOf(j.endTime) - minutesOf(j.startTime)) <= 480
+        && j.startTime >= (j.minAge < 16 ? '08:00' : '06:00')
+        && j.endTime <= (j.minAge < 16 ? '20:00' : '22:00')
+        && j.days is list && !('שבת' in j.days)
+        && j.youthLawAck == true
+        && j.get('status', 'open') in ['open', 'closed'];
+    }
+
     match /jobs/{jobId} {
       allow read: if isLoggedIn();
-      allow create: if isEmployer() && request.resource.data.employerId == request.auth.uid;
-      allow update: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
+      allow create: if isEmployer()
+        && request.resource.data.employerId == request.auth.uid
+        && validJob(request.resource.data);
+      allow update: if isAdmin()
+        || (isEmployer()
+            && resource.data.employerId == request.auth.uid
+            && request.resource.data.employerId == request.auth.uid
+            && validJob(request.resource.data));
       allow delete: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
     }
 
-    function teenHasParentalApproval() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.parentalConsentStatus == 'approved';
+    function canApply(a) {
+      let teen = me();
+      let job = get(/databases/$(database)/documents/jobs/$(a.jobId)).data;
+      return a.applicantId == request.auth.uid
+        && a.jobId is string
+        && a.employerId == job.employerId
+        && a.status == 'new'
+        && !a.keys().hasAny(['teenAge', 'teenYouthBand', 'consentVerified', 'parentNotifiedAt', 'complianceIssues'])
+        && teen.parentalConsentStatus == 'approved'
+        && teen.get('termsVersion', '') == '2'
+        && isYouthAge(teen.birthDate)
+        && ageOf(teen.birthDate) >= job.get('minAge', 16)
+        && (ageOf(teen.birthDate) >= 15 || vacationActive())
+        && job.get('status', 'open') == 'open';
     }
 
     match /applications/{appId} {
       allow read: if isAdmin()
         || (isTeen() && resource.data.applicantId == request.auth.uid)
         || (isEmployer() && resource.data.employerId == request.auth.uid);
-      // Youth compliance: teens may only apply after parentalConsentStatus === 'approved'
-      allow create: if isTeen()
-        && request.resource.data.applicantId == request.auth.uid
-        && teenHasParentalApproval();
-      allow update: if isAdmin() || (isEmployer() && resource.data.employerId == request.auth.uid);
+      allow create: if isTeen() && canApply(request.resource.data);
+      allow update: if isAdmin()
+        || (isEmployer()
+            && resource.data.employerId == request.auth.uid
+            && affected().hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status in ['new', 'viewed', 'contacted', 'interview', 'accepted', 'rejected', 'completed']);
       allow delete: if isAdmin();
     }
 
+    function parentPhoneMatches(data) {
+      let digits = data.parentPhone.replace('[^0-9]', '');
+      let e164 = digits[0:1] == '0' ? '+972' + digits[1:digits.size()] : '+' + digits;
+      return isLoggedIn() && request.auth.token.get('phone_number', '') == e164;
+    }
+
     match /parentalApprovals/{approvalId} {
-      // Parent approval links are opened without login (?approve=TOKEN)
-      allow read: if true;
-      allow create: if isTeen() && request.resource.data.teenUid == request.auth.uid;
-      allow update: if true;
+      allow get: if true;
+      allow list: if isAdmin() || (isTeen() && resource.data.teenUid == request.auth.uid);
+      allow create: if isTeen()
+        && request.resource.data.teenUid == request.auth.uid
+        && request.resource.data.token == approvalId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.parentName is string
+        && request.resource.data.parentEmail is string
+        && request.resource.data.parentPhone is string
+        && request.resource.data.parentPhone.replace('[^0-9]', '').size() >= 9;
+      allow update: if resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && affected().hasOnly(['status', 'decidedAt'])
+        && parentPhoneMatches(resource.data);
       allow delete: if isAdmin();
     }
 
     match /messages/{messageId} {
       allow read: if isLoggedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-      allow create: if isLoggedIn() && request.resource.data.senderId == request.auth.uid;
+      allow create: if isLoggedIn() && request.resource.data.senderId == request.auth.uid
+        && (isTeen() || isEmployer() || isAdmin());
       allow update: if isAdmin() || (isLoggedIn() && resource.data.senderId == request.auth.uid);
       allow delete: if isAdmin() || (isLoggedIn() && resource.data.senderId == request.auth.uid);
     }
@@ -87,7 +171,9 @@ service cloud.firestore {
 
     match /reports/{reportId} {
       allow read: if isAdmin();
-      allow create: if isLoggedIn();
+      allow create: if (isTeen() || isEmployer() || isAdmin())
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'pending';
       allow update, delete: if isAdmin();
     }
 

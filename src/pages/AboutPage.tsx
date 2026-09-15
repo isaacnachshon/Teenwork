@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import RightsInfoModal from '@/components/RightsInfoModal';
 import { UsersIcon, BriefcaseIcon, ScaleIcon, WalletIcon, StarIcon, MapPinIcon, ChevronLeftIcon, MailIcon } from '@/components/icons';
 
 interface AboutPageProps {
@@ -22,17 +23,8 @@ const ValueCard: React.FC<{ icon: React.ReactNode; title: string; description: s
     </div>
 );
 
-const TeamMember: React.FC<{ name: string; role: string; image: string }> = ({ name, role, image }) => (
-    <div className="flex flex-col items-center gap-3">
-        <img src={image} alt={name} className="w-24 h-24 rounded-full object-cover shadow-md border-4 border-purple-100" />
-        <div className="text-center">
-            <p className="font-bold text-gray-800">{name}</p>
-            <p className="text-sm text-purple-600 font-medium">{role}</p>
-        </div>
-    </div>
-);
-
 const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
+    const [showRights, setShowRights] = useState(false);
     return (
         <div className="bg-gray-50 min-h-screen font-sans" dir="rtl">
             {/* Header */}
@@ -45,9 +37,13 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
                         <ChevronLeftIcon className="w-5 h-5" />
                         חזרה לדף הבית
                     </button>
-                    <span className="text-2xl font-bold text-purple-600">TEENWORK</span>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setShowRights(true)} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">זכויות נוער</button>
+                        <span className="text-2xl font-bold text-purple-600">TEENWORK</span>
+                    </div>
                 </div>
             </header>
+            <RightsInfoModal isOpen={showRights} onClose={() => setShowRights(false)} />
 
             {/* Hero */}
             <section className="bg-gradient-to-br from-purple-600 to-purple-800 text-white py-24 px-4 text-center">
@@ -66,9 +62,9 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
             <section className="bg-white py-16 px-4">
                 <div className="container mx-auto max-w-4xl">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        <StatCard value="2,000+" label="נרשמו לפלטפורמה" />
-                        <StatCard value="500+" label="משרות פורסמו" />
-                        <StatCard value="150+" label="מעסיקים פעילים" />
+                        <StatCard value="14–18" label="גילאי הפלטפורמה" />
+                        <StatCard value="לפי חוק" label="כל משרה נבדקת מול חוק עבודת הנוער" />
+                        <StatCard value="אישור הורה" label="לכל חשבון נוער" />
                         <StatCard value="6" label="קטגוריות עבודה" />
                     </div>
                 </div>
@@ -128,21 +124,8 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
                             ב-2024 החלטנו לפתור את הבעיה הזו מהשורש. בנינו פלטפורמה שמדברת את השפה של בני הנוער, מסבירה למעסיקים את הכללים, ומחברת בין השניים בקלות ובמהירות.
                         </p>
                         <p>
-                            היום TEENWORK מחברת מאות בני נוער עם מאות מעסיקים מקצועיים ברחבי הארץ — ואנחנו רק בהתחלה.
+                            היום TEENWORK מחברת בין בני נוער למעסיקים ברחבי הארץ, עם אישור הורים לכל חשבון ובדיקת כל משרה מול החוק — ואנחנו רק בהתחלה.
                         </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Team */}
-            <section className="py-20 px-4 bg-white">
-                <div className="container mx-auto max-w-3xl text-center">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-12">הצוות שלנו</h2>
-                    <div className="flex flex-wrap justify-center gap-12">
-                        <TeamMember name="איתי נחשון" role="מייסד ומנכ״ל" image="https://picsum.photos/id/1012/100/100" />
-                        <TeamMember name="מיה לוי" role="ראש מוצר" image="https://picsum.photos/id/1005/100/100" />
-                        <TeamMember name="דניאל כהן" role="ראש טכנולוגיה" image="https://picsum.photos/id/1025/100/100" />
-                        <TeamMember name="שירה אברהם" role="ראש שיווק" image="https://picsum.photos/id/1027/100/100" />
                     </div>
                 </div>
             </section>

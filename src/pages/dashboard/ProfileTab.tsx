@@ -78,7 +78,8 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
         updates.name = form.name || '';
         updates.phone = form.phone || '';
         updates.city = form.city || '';
-        updates.birthDate = form.birthDate || '';
+        // birthDate is locked once set (firestore.rules); only write it the first time.
+        if (!userData?.birthDate) updates.birthDate = form.birthDate || '';
         updates.school = form.school || '';
         updates.bio = form.bio || '';
         updates.skills = form.skills || [];
@@ -253,7 +254,9 @@ const ProfileTab: React.FC<Props> = ({ role }) => {
                 <div style={{ gridColumn: '1 / -1' }}><Field label="שם מלא" value={form.name || ''} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder="ישראל ישראלי" /></div>
                 <Field label="טלפון" value={form.phone || ''} onChange={v => setForm(p => ({ ...p, phone: v }))} type="tel" placeholder="052-1234567" />
                 <Field label="עיר" value={form.city || ''} onChange={v => setForm(p => ({ ...p, city: v }))} placeholder="תל אביב" />
-                <Field label="תאריך לידה" value={form.birthDate || ''} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" />
+                {userData?.birthDate
+                  ? <InfoField icon="calendar" label="תאריך לידה (לא ניתן לשינוי)" value={userData.birthDate} />
+                  : <Field label="תאריך לידה" value={form.birthDate || ''} onChange={v => setForm(p => ({ ...p, birthDate: v }))} type="date" />}
                 <Field label="בית ספר" value={form.school || ''} onChange={v => setForm(p => ({ ...p, school: v }))} placeholder="שם בית הספר" />
               </div>
             ) : (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { TeenProfile } from '@/types';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { ReputationService } from '@/services/ReputationService';
 import { MapPinIcon, StarIcon, ChevronLeftIcon } from '@/components/icons';
 
 interface ApplicantProfileViewProps {
@@ -17,21 +18,16 @@ const ApplicantProfileView: React.FC<ApplicantProfileViewProps> = ({ applicantId
         const fetchProfile = async () => {
             setIsLoading(true);
             try {
-                const userDoc = await getDoc(doc(db, 'users', applicantId));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
+                const data = await ReputationService.profile(applicantId);
+                if (data) {
                     setProfile({
                         name: data.name || 'מועמד/ת',
-                        age: data.age || 0,
-                        location: data.location || '',
-                        coordinates: data.coordinates,
-                        profileImageUrl: data.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'User')}&background=DBEAFE&color=2563EB&bold=true`,
+                        location: data.city || '',
+                        profileImageUrl: '',
                         bio: data.bio || '',
                         skills: data.skills || [],
-                        preferredJobTypes: data.preferredJobTypes || [],
-                        workHistory: data.workHistory || [],
-                        reviews: data.reviews || [],
-                    });
+                        preferredJobTypes: [], workHistory: [], reviews: [],
+                    } as TeenProfile);
                 }
             } catch (error) {
                 console.error('Error fetching applicant profile:', error);
@@ -66,7 +62,7 @@ const ApplicantProfileView: React.FC<ApplicantProfileViewProps> = ({ applicantId
                 <img src={profile.profileImageUrl} alt={profile.name} className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover" />
                 <div className="text-center sm:text-right flex-grow">
                     <h1 className="text-3xl font-bold text-gray-800">{profile.name}</h1>
-                    <p className="text-gray-500">גיל {profile.age}</p>
+                    {profile.age !== undefined && <p className="text-gray-500">גיל {profile.age}</p>}
                     <div className="flex items-center justify-center sm:justify-start gap-1 text-gray-500 mt-1">
                         <MapPinIcon className="w-4 h-4" />
                         <span>{profile.location}</span>

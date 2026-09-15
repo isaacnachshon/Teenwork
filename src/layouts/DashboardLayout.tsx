@@ -3,8 +3,12 @@ import { DIcon } from '@/components/DashboardIcons';
 import NotificationsPanel from '@/components/NotificationsPanel';
 import { DashRole, TabKey, avatarGrad, initial } from '@/types/dashboard';
 import OverviewPage from '@/pages/dashboard/OverviewPage';
+import EmployerDashboard from '@/pages/dashboard/EmployerDashboard';
+import JobSearchPage from '@/pages/jobs/JobSearchPage';
+import RankingsPage from '@/pages/dashboard/RankingsPage';
 import ConnectionsPage from '@/pages/dashboard/ConnectionsPage';
 import UsersPage from '@/pages/dashboard/UsersPage';
+import ReportsPage from '@/pages/dashboard/ReportsPage';
 import ChatPage from '@/pages/dashboard/ChatPage';
 import ProfileTab from '@/pages/dashboard/ProfileTab';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
@@ -27,9 +31,9 @@ const ROLE_LABEL: Record<DashRole, string> = {
 };
 
 const NAV: Record<DashRole, [TabKey, string, string][]> = {
-  admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat'], ['settings', 'הגדרות', 'gear']],
-  employer: [['overview', 'סקירה', 'overview'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['settings', 'הגדרות', 'gear']],
-  teen: [['overview', 'סקירה', 'overview'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['ai', 'עוזר AI', 'star'], ['settings', 'הגדרות', 'gear']],
+  admin: [['overview', 'סקירה כללית', 'overview'], ['users', 'ניהול משתמשים', 'users'], ['reports', 'דיווחים', 'flag'], ['connections', 'התקשרויות', 'link'], ['chat', "ניהול צ'אט", 'chat'], ['settings', 'הגדרות', 'gear']],
+  employer: [['overview', 'סקירה', 'overview'], ['jobs', 'ניהול משרות', 'link'], ['connections', 'מועמדים והעסקות', 'link'], ['chat', 'הודעות', 'chat'], ['settings', 'הגדרות', 'gear']],
+  teen: [['overview', 'סקירה', 'overview'], ['jobs', 'חיפוש משרות', 'search'], ['connections', 'העבודות שלי', 'link'], ['chat', 'הודעות', 'chat'], ['ai', 'עוזר AI', 'star'], ['settings', 'הגדרות', 'gear']],
 };
 
 const SEARCH_PH: Record<DashRole, string> = {
@@ -72,7 +76,10 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
   const renderContent = () => {
     switch (tab) {
       case 'overview': return <OverviewPage role={role} userName={userName} />;
+      case 'jobs': return role === 'employer' ? <EmployerDashboard embedded onLogout={onLogout} /> : role === 'teen' ? <JobSearchPage /> : null;
       case 'users': return <UsersPage />;
+      case 'reports': return role === 'admin' ? <ReportsPage /> : null;
+      case 'rankings': return <RankingsPage />;
       case 'connections': return <ConnectionsPage role={role} />;
       case 'chat': return <ChatPage role={role} />;
       case 'profile': return <ProfileTab role={role} />;
@@ -105,6 +112,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
             );
           })}
         </nav>
+        <button className="tw-nav-btn" onClick={() => setTab('rankings')} style={{padding:12,border:0,borderRadius:12,background:tab==='rankings'?'#F3ECFE':'#fff',textAlign:'right',fontFamily:'inherit'}}>דירוגים</button>
         {role === 'teen' && (
           <button className="tw-nav-btn" onClick={() => setShowRightsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', border: '1px solid #E8DAF8', cursor: 'pointer', textAlign: 'right', padding: '11px 12px', borderRadius: 11, fontFamily: 'inherit', fontSize: 15, background: '#FAF5FF', color: '#7B2FF6', fontWeight: 700, marginTop: 12, transition: 'background .14s' }}>
             <span style={{ display: 'flex' }}>{DIcon('scale', { size: 19, color: '#7B2FF6' })}</span>

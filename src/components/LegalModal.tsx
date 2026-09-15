@@ -39,7 +39,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'terms', onClose }
                     {activeTab === 'terms' ? (
                         <>
                             <h2 className="text-xl font-bold text-gray-800">תקנון שימוש – TEENWORK</h2>
-                            <p className="text-gray-500 text-xs">עדכון אחרון: יוני 2025</p>
+                            <p className="text-gray-500 text-xs">עדכון אחרון: ספטמבר 2026 · גרסה 2</p>
 
                             <section className="space-y-2">
                                 <h3 className="font-bold text-gray-800">1. כללי</h3>
@@ -48,13 +48,15 @@ const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'terms', onClose }
 
                             <section className="space-y-2">
                                 <h3 className="font-bold text-gray-800">2. כשירות משתמשים</h3>
-                                <p>בני נוער: גיל 14–18 בלבד. שימוש על ידי קטינים מתחת לגיל 14 אסור. רישום מחייב אימות כתובת אימייל.</p>
+                                <p>בני נוער: גיל 14–18 בלבד. שימוש על ידי קטינים מתחת לגיל 14 אסור. רישום מחייב תאריך לידה, אימות כתובת אימייל, ואישור הורה/אפוטרופוס המאומת בטלפון. ההורה מקבל עדכון על כל מועמדות שמוגשת.</p>
+                                <p>בני 14 רשאים לעבוד בעבודות קלות בחופשות הלימודים הרשמיות בלבד. בני 15 — בכפוף לחוק לימוד חובה.</p>
                                 <p>מעסיקים: חייבים להיות עסקים חוקיים הפועלים בהתאם לחוק עבודת נוער, התשי"ג-1953.</p>
                             </section>
 
                             <section className="space-y-2">
                                 <h3 className="font-bold text-gray-800">3. זכויות ואחריות</h3>
                                 <p>TEENWORK אינה צד ביחסי העבודה בין הנוער למעסיק. האחריות לקיום חוק עבודת הנוער, לרבות שעות עבודה מותרות ושכר מינימום, חלה על המעסיק בלבד.</p>
+                                <p>חובות המעסיק כוללות בין היתר: שכר מינימום לנוער לפי גיל, עד 8 שעות עבודה ביום ו-40 בשבוע, ללא שעות נוספות, ללא עבודת לילה ושבת, קבלת אישור רפואי וצילום תעודת זהות, שמירת טופס 101, מסירת הודעה בכתב על תנאי ההעסקה תוך 7 ימים, תלוש שכר חודשי ותשלום ביטוח לאומי ללא ניכוי מהנער/ה. הפלטפורמה מסרבת לפרסם משרה שאינה עומדת בתנאים אלה.</p>
                                 <p>TEENWORK שומרת לעצמה את הזכות להסיר כל תוכן פוגעני או הפרה של תנאים אלה.</p>
                             </section>
 
@@ -81,49 +83,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'terms', onClose }
                     ) : (
                         <>
                             <h2 className="text-xl font-bold text-gray-800">מדיניות פרטיות – TEENWORK</h2>
-                            <p className="text-gray-500 text-xs">עדכון אחרון: יוני 2025</p>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">1. מידע שאנו אוספים</h3>
-                                <p>אנו אוספים את המידע הבא בעת השימוש בפלטפורמה:</p>
-                                <ul className="list-disc list-inside space-y-1 pr-2">
-                                    <li>שם מלא וכתובת אימייל</li>
-                                    <li>גיל ומיקום (לנוער בלבד)</li>
-                                    <li>תמונת פרופיל (אופציונלי)</li>
-                                    <li>כישורים ועדיפויות עבודה (לנוער)</li>
-                                    <li>פרטי חברה ולוגו (למעסיקים)</li>
-                                </ul>
-                            </section>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">2. שימוש במידע</h3>
-                                <p>המידע משמש אך ורק למטרות הפלטפורמה: חיבור בין נוער למעסיקים, שיפור השירות, ואימות זהות. איננו מוכרים מידע לצדדים שלישיים.</p>
-                            </section>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">3. אחסון מידע</h3>
-                                <p>המידע מאוחסן בשירותי Firebase של Google, הפועלים בתאימות לתקן ISO 27001 ול-GDPR. השרתים ממוקמים בארה"ב.</p>
-                            </section>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">4. הגנה על קטינים</h3>
-                                <p>TEENWORK נותנת דגש מיוחד להגנה על פרטיות קטינים בהתאם לחוק הגנת הפרטיות, התשמ"א-1981. פרטי בני נוער אינם נחשפים למעסיקים מעבר למה שנדרש לצורך הקשר התעסוקתי.</p>
-                            </section>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">5. זכויות המשתמש</h3>
-                                <ul className="list-disc list-inside space-y-1 pr-2">
-                                    <li>זכות לעיון במידע האישי</li>
-                                    <li>זכות לתיקון מידע שגוי</li>
-                                    <li>זכות למחיקת החשבון וכל הנתונים</li>
-                                </ul>
-                                <p>למימוש זכויות אלה: support@teensworks.com</p>
-                            </section>
-
-                            <section className="space-y-2">
-                                <h3 className="font-bold text-gray-800">6. עוגיות (Cookies)</h3>
-                                <p>הפלטפורמה משתמשת ב-cookies לצורך ניהול הפגישה בלבד. אין שימוש ב-cookies לצרכי פרסום.</p>
-                            </section>
+                            <p className="text-gray-500 text-xs">עדכון אחרון: ספטמבר 2026 · גרסה 2</p>
+                            <p>המדיניות המלאה מתפרסמת בכתובת <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-semibold">teensworks.com/privacy</a> והיא המקור המחייב היחיד.</p>
+                            <iframe title="מדיניות פרטיות" src="/privacy" className="w-full h-[50vh] rounded-lg border border-gray-200 bg-white" />
                         </>
                     )}
                 </div>
