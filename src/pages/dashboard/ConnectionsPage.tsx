@@ -158,7 +158,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
 
   if (loading) {
     return (
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+      <div className="tw-page" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
         <div style={{ marginBottom: 22 }}>
           <Skeleton width={180} height={25} style={{ borderRadius: 6, marginBottom: 8 }} />
           <Skeleton width={250} height={14} style={{ borderRadius: 6 }} />
@@ -171,7 +171,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
   }
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+    <div className="tw-page" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-.4px' }}>{pageTitle}</h1>
@@ -188,7 +188,7 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
         {filters.map(([key, label, count]) => {
           const active = filter === key;
           return (
-            <button key={key} onClick={() => setFilter(key as any)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: `1px solid ${active ? '#1B2333' : '#E3E6EC'}`, background: active ? '#1B2333' : '#fff', color: active ? '#fff' : '#51607A', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <button key={key} onClick={() => setFilter(key as any)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderRadius: 10, border: `1px solid ${active ? '#1B2333' : '#E3E6EC'}`, background: active ? '#1B2333' : '#fff', color: active ? '#fff' : '#51607A', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 40 }}>
               {label}<span style={{ fontSize: 12, opacity: 0.7 }}>{count}</span>
             </button>
           );
@@ -220,26 +220,26 @@ const ConnectionsPage: React.FC<Props> = ({ role }) => {
           actions.push(mkBtn('פרטים','soft',()=>showDetails(rec)));
           if(rec.status==='completed' && role!=='admin')actions.push(mkBtn(role==='teen'?'דרג מעסיק':'דרג עובד','primary',()=>{setScore(5);setRating(rec);}));
           return (
-            <div key={rec.id} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 175 }}>
+            <div key={rec.id} className="tw-card tw-conn-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: '1 1 160px' }}>
                 <div style={{ width: 46, height: 46, borderRadius: '50%', background: avatarGrad(rec.teenName), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 17, flexShrink: 0 }}>{initial(rec.teenName)}</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{rec.teenName}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.teenName}</div>
                   {rec.teenAge > 0 && <div style={{ fontSize: 12.5, color: '#8A93A3' }}>{'בן/בת ' + rec.teenAge}</div>}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', color: '#C8CDD7' }}>{DIcon('link', { size: 22, color: '#C8CDD7' })}</div>
-              <div style={{ flex: 1, minWidth: 150 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 600 }}>{rec.jobTitle}</div>
+              <div className="tw-conn-link-icon" style={{ display: 'flex', alignItems: 'center', color: '#C8CDD7' }}>{DIcon('link', { size: 22, color: '#C8CDD7' })}</div>
+              <div style={{ flex: '1 1 140px', minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rec.jobTitle}</div>
                 <div style={{ fontSize: 12.5, color: '#8A93A3' }}>{getSub2(rec)}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '6px 12px', borderRadius: 9, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                 <span className={rec.status === 'pending' ? 'tw-pulse' : ''} style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
                 {meta.label}
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div className="tw-conn-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                 {actions.map((a, i) => (
-                  <button key={i} className={a.bg === '#7B2FF6' ? 'tw-btn-primary' : 'tw-btn-ghost'} onClick={a.go} style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: a.bg, color: a.color, border: a.border }}>{a.label}</button>
+                  <button key={i} className={a.bg === '#7B2FF6' ? 'tw-btn-primary' : 'tw-btn-ghost'} onClick={a.go} style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', background: a.bg, color: a.color, border: a.border, minHeight: 40 }}>{a.label}</button>
                 ))}
               </div>
             </div>
