@@ -337,7 +337,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
     ];
 
     return (
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+      <div className="tw-page" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-.4px' }}>{pageTitle}</h1>
@@ -346,7 +346,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
         </div>
 
         {/* KPI Cards — real counts from the teen's applications */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 18 }}>
+        <div className="tw-kpi-grid">
           {teenStats.map((s, i) => (
             <div key={i} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '17px 18px', animation: 'pop .3s both' }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{DIcon(s.icon, { size: 20, color: s.color })}</div>
@@ -457,7 +457,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
     const acmax = Math.max(...adminChart.map(b => b.value), 1);
 
     return (
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+      <div className="tw-page" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-.4px' }}>{pageTitle}</h1>
@@ -466,7 +466,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
         </div>
 
         {/* KPI Cards — live counts from Firestore */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 18 }}>
+        <div className="tw-kpi-grid">
           {adminStats.map((s, i) => (
             <div key={i} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '17px 18px', animation: 'pop .3s both' }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{DIcon(s.icon, { size: 20, color: s.color })}</div>
@@ -477,7 +477,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
         </div>
 
         {/* Chart + requires-attention */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 16, marginBottom: 18 }}>
+        <div className="tw-split-grid">
           <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '20px 22px' }}>
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>צמיחת משתמשים — 6 חודשים</div>
@@ -579,7 +579,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
   const sideCard = getSideCard(role, pendingTeens, pendingEmps);
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
+    <div className="tw-page" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '26px 30px 42px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-.4px' }}>{pageTitle}</h1>
@@ -588,7 +588,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 18 }}>
+      <div className="tw-kpi-grid">
         {stats.map((s, i) => (
           <div key={i} className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '17px 18px', animation: 'pop .3s both' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -602,7 +602,7 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
       </div>
 
       {/* Chart + Side card */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 16, marginBottom: 18 }}>
+      <div className="tw-split-grid">
         <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>

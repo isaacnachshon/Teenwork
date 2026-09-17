@@ -102,13 +102,13 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
     }, [job.id]);
 
     return (
-        <div className="max-w-4xl mx-auto animate-in fade-in-0 duration-500">
-            <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 font-semibold mb-4 transition-colors">
+        <div className="max-w-4xl mx-auto animate-in fade-in-0 duration-500 min-w-0 px-0">
+            <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 font-semibold mb-4 transition-colors min-h-[44px]">
                 <ChevronLeftIcon className="w-5 h-5" />
                 <span>חזרה ללוח הבקרה</span>
             </button>
 
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">מועמדים למשרה: {job.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 break-words">מועמדים למשרה: {job.title}</h1>
             <p className="text-gray-500 mb-6">{applicants.length} מועמדים</p>
 
             {isLoading ? (
@@ -121,15 +121,15 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
             ) : (
                 <div className="bg-white rounded-xl shadow-md divide-y divide-gray-100">
                     {applicants.map(applicant => (
-                        <div key={applicant.applicationId} className="p-4 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
+                        <div key={applicant.applicationId} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <img
                                     src={applicant.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicant.name)}&background=DBEAFE&color=2563EB&bold=true`}
                                     alt={applicant.name}
-                                    className="w-12 h-12 rounded-full object-cover"
+                                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                                 />
-                                <div>
-                                    <p className="font-bold text-gray-800">{applicant.name}</p>
+                                <div className="min-w-0">
+                                    <p className="font-bold text-gray-800 truncate">{applicant.name}</p>
                                     <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                         {applicant.age !== undefined && <span>גיל {applicant.age}</span>}
                                         {applicant.consentVerified !== undefined && (
@@ -140,11 +140,11 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col xs:flex-row sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                                 <select
                                     value={applicant.status}
                                     onChange={(e) => handleStatusChange(applicant.applicationId, e.target.value)}
-                                    className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 ${statusColors[applicant.status] || 'bg-gray-100 text-gray-800'}`}
+                                    className={`text-sm font-medium px-3 py-2.5 min-h-[44px] rounded-lg border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 w-full sm:w-auto ${statusColors[applicant.status] || 'bg-gray-100 text-gray-800'}`}
                                 >
                                     <option value="new">{statusLabels.new}</option>
                                     <option value="viewed">{statusLabels.viewed}</option>
@@ -153,7 +153,7 @@ const ApplicantsListView: React.FC<ApplicantsListViewProps> = ({ job, onBack, on
                                     <option value="accepted">{statusLabels.accepted}</option>
                                     <option value="rejected">{statusLabels.rejected}</option>
                                 </select>
-                                <button onClick={() => onViewProfile(applicant.applicantId)} className="text-blue-600 font-semibold hover:underline">צפה בפרופיל</button>
+                                <button onClick={() => onViewProfile(applicant.applicantId)} className="text-blue-600 font-semibold min-h-[44px] px-4 rounded-lg bg-blue-50 hover:bg-blue-100 w-full sm:w-auto">צפה בפרופיל</button>
                             </div>
                         </div>
                     ))}

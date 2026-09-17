@@ -205,7 +205,7 @@ const PostJobModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div role="dialog" aria-modal="true" aria-label={editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto transform transition-all animate-in fade-in-0 zoom-in-95 duration-300">
+      <div role="dialog" aria-modal="true" aria-label={editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'} className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto transform transition-all animate-in fade-in-0 zoom-in-95 duration-300">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold text-gray-800">{editingJob ? 'עריכת משרה' : 'פרסום משרה חדשה'}</h2>
           <button disabled={saving} aria-label="סגור" onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -309,7 +309,7 @@ const PostJobModal: React.FC<{
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ניסיון נדרש</label>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   {['ללא ניסיון', 'ניסיון בסיסי', 'ניסיון רב'].map(exp => (
                     <button type="button" key={exp} onClick={() => setFormData(prev => ({ ...prev, experience: exp }))} className={`flex-1 p-3 text-center rounded-lg border-2 transition-colors ${formData.experience === exp ? 'bg-blue-100 border-blue-500 text-blue-700 font-semibold' : 'bg-white border-gray-300 hover:border-blue-400'}`}>{exp}</button>
                   ))}
@@ -360,9 +360,9 @@ const PostJobModal: React.FC<{
 };
 
 const PostedJobCard: React.FC<{ job: Job; onViewApplicants: (job: Job) => void; onEdit: (job: Job) => void; onDelete: (jobId: string, jobTitle: string) => void }> = ({ job, onViewApplicants, onEdit, onDelete }) => (
-  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div className="flex-grow">
-      <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
+  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-w-0">
+    <div className="flex-grow min-w-0">
+      <h3 className="text-lg font-bold text-gray-800 break-words">{job.title}</h3>
       <div className="flex flex-wrap items-center text-sm text-gray-500 gap-x-4 gap-y-1 mt-1">
         <div className="flex items-center gap-1.5"><MapPinIcon className="w-4 h-4" /> {job.location}</div>
         <div className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {job.days?.join(', ')}</div>
@@ -370,15 +370,15 @@ const PostedJobCard: React.FC<{ job: Job; onViewApplicants: (job: Job) => void; 
       </div>
       <div className="mt-2"><JobRightsPanel mode="card" job={job} /></div>
     </div>
-    <div className="flex-shrink-0 flex sm:flex-col items-end justify-between sm:justify-center gap-2">
+    <div className="flex-shrink-0 flex flex-col sm:items-end gap-3 w-full sm:w-auto">
       <div className="flex items-center gap-2 text-blue-600 font-semibold">
         <UsersIcon className="w-5 h-5" />
         <span>{job.applicantsCount} מועמדים</span>
       </div>
-      <div className="flex items-center gap-2">
-        <button onClick={() => onViewApplicants(job)} className="text-sm text-blue-600 font-semibold hover:underline">צפה במועמדים</button>
-        <button onClick={() => onEdit(job)} className="text-sm text-gray-500 font-semibold hover:underline">ערוך</button>
-        <button onClick={() => onDelete(job.id, job.title)} className="text-sm text-red-500 font-semibold hover:underline">מחק</button>
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <button onClick={() => onViewApplicants(job)} className="text-sm text-blue-600 font-semibold px-3 py-2.5 min-h-[44px] rounded-lg bg-blue-50 hover:bg-blue-100">צפה במועמדים</button>
+        <button onClick={() => onEdit(job)} className="text-sm text-gray-600 font-semibold px-3 py-2.5 min-h-[44px] rounded-lg bg-gray-100 hover:bg-gray-200">ערוך</button>
+        <button onClick={() => onDelete(job.id, job.title)} className="text-sm text-red-600 font-semibold px-3 py-2.5 min-h-[44px] rounded-lg bg-red-50 hover:bg-red-100">מחק</button>
       </div>
     </div>
   </div>
@@ -572,13 +572,13 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
 
   const DashboardContent: React.FC = () => (
     <>
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">ניהול משרות</h1>
-          <p className="text-gray-500 mt-1">ניהול משרות ומועמדים בקלות וביעילות.</p>
+      <header className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-6 md:mb-8 gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">ניהול משרות</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">ניהול משרות ומועמדים בקלות וביעילות.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg w-full md:w-auto min-h-[48px]">
             <PlusCircleIcon className="w-6 h-6" />
             <span>פרסם משרה חדשה</span>
           </button>
@@ -603,7 +603,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
         </section>
       )}
 
-      <section className="bg-white p-6 rounded-xl shadow-md mb-10">
+      <section className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 sm:mb-10 min-w-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4">המשרות שפרסמתי</h2>
         {jobs.length === 0 ? (
           <div className="text-center py-10">
@@ -620,47 +620,71 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
         )}
       </section>
 
-      <section className="bg-white p-6 rounded-xl shadow-md">
+      <section className="bg-white p-4 sm:p-6 rounded-xl shadow-md min-w-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4">מועמדים אחרונים</h2>
         {recentApplicants.length === 0 ? (
           <p className="text-center text-gray-500 py-6">עדיין לא התקבלו מועמדויות.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right">
-              <thead className="border-b-2 border-gray-100">
-                <tr>
-                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">שם</th>
-                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">משרה</th>
-                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">סטטוס</th>
-                  <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">פעולות</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentApplicants.map(applicant => (
-                  <tr key={applicant.applicationId} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={applicant.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicant.name)}&background=DBEAFE&color=2563EB&bold=true`}
-                          alt={applicant.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div>
-                          <p className="font-bold text-gray-800">{applicant.name}</p>
-                          {applicant.age !== undefined && <p className="text-sm text-gray-500">גיל {applicant.age}</p>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 whitespace-nowrap text-gray-700">{applicant.jobTitle}</td>
-                    <td className="p-4 whitespace-nowrap">{getStatusChip(applicant.status)}</td>
-                    <td className="p-4 whitespace-nowrap">
-                      <button onClick={() => handleViewApplicantProfile(applicant.applicantId)} className="text-blue-600 font-semibold hover:underline">צפה בפרופיל</button>
-                    </td>
+          <>
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden space-y-3">
+              {recentApplicants.map(applicant => (
+                <div key={applicant.applicationId} className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={applicant.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicant.name)}&background=DBEAFE&color=2563EB&bold=true`}
+                      alt={applicant.name}
+                      className="w-11 h-11 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-800 truncate">{applicant.name}</p>
+                      {applicant.age !== undefined && <p className="text-sm text-gray-500">גיל {applicant.age}</p>}
+                    </div>
+                    <div className="ms-auto flex-shrink-0">{getStatusChip(applicant.status)}</div>
+                  </div>
+                  <p className="text-sm text-gray-600 break-words">{applicant.jobTitle}</p>
+                  <button onClick={() => handleViewApplicantProfile(applicant.applicantId)} className="w-full text-blue-600 font-semibold min-h-[44px] rounded-lg bg-blue-50 hover:bg-blue-100">צפה בפרופיל</button>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: table with horizontal scroll safety */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right min-w-[520px]">
+                <thead className="border-b-2 border-gray-100">
+                  <tr>
+                    <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">שם</th>
+                    <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">משרה</th>
+                    <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">סטטוס</th>
+                    <th className="p-3 text-sm font-semibold tracking-wide text-gray-500">פעולות</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentApplicants.map(applicant => (
+                    <tr key={applicant.applicationId} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={applicant.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicant.name)}&background=DBEAFE&color=2563EB&bold=true`}
+                            alt={applicant.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div>
+                            <p className="font-bold text-gray-800">{applicant.name}</p>
+                            {applicant.age !== undefined && <p className="text-sm text-gray-500">גיל {applicant.age}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-gray-700">{applicant.jobTitle}</td>
+                      <td className="p-4 whitespace-nowrap">{getStatusChip(applicant.status)}</td>
+                      <td className="p-4 whitespace-nowrap">
+                        <button onClick={() => handleViewApplicantProfile(applicant.applicantId)} className="text-blue-600 font-semibold hover:underline min-h-[40px] px-2">צפה בפרופיל</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </>
@@ -692,7 +716,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
   };
 
   return (
-    <div className={embedded ? 'bg-gray-50' : 'flex min-h-screen bg-gray-50'}>
+    <div className={embedded ? 'bg-gray-50 min-w-0 overflow-x-hidden' : 'flex min-h-screen bg-gray-50 min-w-0 overflow-x-hidden'}>
       {isModalOpen && (
         <PostJobModal
           onClose={() => { setIsModalOpen(false); setEditingJob(null); }}
@@ -725,7 +749,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
         </div>
       </nav>}
 
-      <main className="flex-1 p-6 md:p-10">
+      <main className="flex-1 p-4 sm:p-6 md:p-10 min-w-0 overflow-x-hidden">
         {isLoading ? <p role="status">טוען משרות...</p> : loadError ? <div role="alert">{loadError}<button onClick={fetchData}>נסה שוב</button></div> : renderContent()}
       </main>
     </div>
