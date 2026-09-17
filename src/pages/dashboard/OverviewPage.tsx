@@ -366,8 +366,9 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
           {teenApps === null ? (
             <div style={{ fontSize: 14, color: '#8A93A3', padding: '8px 0' }}>טוען...</div>
           ) : activeJobs.length === 0 ? (
-            <div style={{ fontSize: 14, color: '#8A93A3', padding: '8px 0' }}>
-              עדיין אין לך עבודה פעילה. הגישו מועמדות למשרה מתאימה — ברגע שמעסיק יאשר אתכם, העבודה תופיע כאן.
+            <div className="tw-empty-inline">
+              <span className="tw-empty-inline-dot" aria-hidden />
+              <span>עדיין אין לך עבודה פעילה. הגישו מועמדות למשרה מתאימה — ברגע שמעסיק יאשר אתכם, העבודה תופיע כאן.</span>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -400,10 +401,11 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
           {matchedJobs === null ? (
             <div style={{ fontSize: 14, color: '#8A93A3', padding: '8px 0' }}>מחפש משרות מתאימות...</div>
           ) : matchedJobs.length === 0 ? (
-            <div style={{ fontSize: 14, color: '#8A93A3', padding: '8px 0' }}>
-              {profileComplete
+            <div className="tw-empty-inline">
+              <span className="tw-empty-inline-dot" aria-hidden />
+              <span>{profileComplete
                 ? 'עדיין אין משרות זמינות במערכת. חזרו לכאן בקרוב — ברגע שיתווספו משרות, נציג לכם את המתאימות ביותר.'
-                : 'השלימו את הפרופיל שלכם — הוסיפו כישורים ותחומי עבודה מועדפים — וכאן יופיעו המשרות שמתאימות לכם.'}
+                : 'השלימו את הפרופיל שלכם — הוסיפו כישורים ותחומי עבודה מועדפים — וכאן יופיעו המשרות שמתאימות לכם.'}</span>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -499,7 +501,10 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
           <div className="tw-card" style={{ background: '#fff', border: '1px solid #EEF0F3', borderRadius: 16, padding: '18px 18px 6px' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>דורש טיפול</div>
             {attention.length === 0 ? (
-              <div style={{ fontSize: 14, color: '#8A93A3', padding: '10px 2px 16px' }}>אין פריטים שדורשים טיפול כרגע ✓</div>
+              <div className="tw-empty-inline" style={{ margin: '6px 0 12px' }}>
+                <span className="tw-empty-inline-dot" aria-hidden />
+                <span>אין פריטים שדורשים טיפול כרגע ✓</span>
+              </div>
             ) : attention.map((it, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', borderBottom: '1px solid #F1F2F5' }}>
                 <div style={{ width: 38, height: 38, borderRadius: 11, background: it.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{DIcon(it.icon, { size: 18, color: it.color })}</div>
@@ -518,7 +523,10 @@ const OverviewPage: React.FC<Props> = ({ role, userName }) => {
           {adminActivity === null ? (
             <div style={{ fontSize: 14, color: '#8A93A3', padding: '11px 0' }}>טוען...</div>
           ) : adminActivity.length === 0 ? (
-            <div style={{ fontSize: 14, color: '#8A93A3', padding: '11px 0' }}>אין עדיין פעילות במערכת. ברגע שמשתמשים יירשמו, יפורסמו משרות או יוגשו מועמדויות — הכל יופיע כאן.</div>
+            <div className="tw-empty-inline" style={{ margin: '8px 0 14px' }}>
+              <span className="tw-empty-inline-dot" aria-hidden />
+              <span>אין עדיין פעילות במערכת. ברגע שמשתמשים יירשמו, יפורסמו משרות או יוגשו מועמדויות — הכל יופיע כאן.</span>
+            </div>
           ) : adminActivity.map((f, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F4F5F7' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7B2FF6', flexShrink: 0 }} />

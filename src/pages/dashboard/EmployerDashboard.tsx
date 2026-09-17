@@ -606,10 +606,12 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
       <section className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 sm:mb-10 min-w-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4">המשרות שפרסמתי</h2>
         {jobs.length === 0 ? (
-          <div className="text-center py-10">
-            <BriefcaseIcon className="w-16 h-16 mx-auto text-gray-300" />
-            <h3 className="mt-4 text-lg font-semibold text-gray-700">עדיין לא פרסמת משרות</h3>
-            <p className="mt-1 text-gray-500">לחץ על 'פרסם משרה חדשה' כדי להתחיל.</p>
+          <div className="tw-empty-state py-10">
+            <div className="tw-empty-icon">
+              <BriefcaseIcon className="w-8 h-8" style={{ color: '#7B2FF6' }} />
+            </div>
+            <h3 className="tw-empty-title">עדיין לא פרסמת משרות</h3>
+            <p className="tw-empty-desc">לחץ על 'פרסם משרה חדשה' כדי להתחיל.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -623,7 +625,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onLogout, embedde
       <section className="bg-white p-4 sm:p-6 rounded-xl shadow-md min-w-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4">מועמדים אחרונים</h2>
         {recentApplicants.length === 0 ? (
-          <p className="text-center text-gray-500 py-6">עדיין לא התקבלו מועמדויות.</p>
+          <div className="tw-empty-inline" style={{ justifyContent: 'center', margin: '8px 0' }}>
+            <span className="tw-empty-inline-dot" aria-hidden />
+            <span>עדיין לא התקבלו מועמדויות.</span>
+          </div>
         ) : (
           <>
             {/* Mobile: stacked cards */}

@@ -186,8 +186,8 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
       <aside className="tw-dash-sidebar" style={asideStyle} aria-hidden={isMobile && !menuOpen}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px 20px', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #7B2FF6, #5560FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 17, boxShadow: '0 3px 10px rgba(123,47,246,.25)', flexShrink: 0 }}>T</div>
-            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '.5px', color: '#7B2FF6' }}>TEENWORK</div>
+            <div className="tw-logo-mark" style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 17, flexShrink: 0 }}>T</div>
+            <div className="tw-logo-wordmark" style={{ fontSize: 20, letterSpacing: '.5px' }}>TEENWORK</div>
           </div>
           {isMobile && (
             <button
@@ -206,8 +206,8 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
             const active = tab === key;
             const badge = badges[key] || 0;
             return (
-              <button key={key} className="tw-nav-btn" onClick={() => goTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: active ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', textAlign: 'right', padding: '12px 14px', borderRadius: 12, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 500, transition: 'all .15s', boxShadow: active ? '0 2px 8px rgba(123,47,246,.08)' : 'none', minHeight: 48 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? '#E8DAF8' : '#F4F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
+              <button key={key} className={`tw-nav-btn${active ? ' tw-nav-active' : ''}`} data-active={active ? 'true' : undefined} onClick={() => goTab(key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: active ? '1px solid #E8DAF8' : '1px solid transparent', cursor: 'pointer', textAlign: 'right', padding: '12px 14px', borderRadius: 12, fontFamily: 'inherit', fontSize: 15, background: active ? '#F3ECFE' : 'transparent', color: active ? '#5A18C2' : '#4A576E', fontWeight: active ? 700 : 500, transition: 'all .2s cubic-bezier(0.22, 1, 0.36, 1)', boxShadow: active ? '0 2px 12px rgba(123,47,246,.14)' : 'none', minHeight: 48 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? 'linear-gradient(135deg, #E8DAF8, #F3ECFE)' : '#F4F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s ease', boxShadow: active ? '0 2px 6px rgba(123,47,246,.12)' : 'none' }}>
                   {DIcon(ic, { size: 17, color: active ? '#6A1FD0' : '#7A8699' })}
                 </div>
                 <span style={{ flex: 1 }}>{label}</span>
@@ -260,6 +260,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
               aria-label="פתח תפריט"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
+              className="tw-btn-ghost"
               style={{ width: 44, height: 44, borderRadius: 12, border: '1px solid #ECEEF1', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
             >
               {DIcon('menu', { size: 20, color: '#5A6478' })}
@@ -288,7 +289,7 @@ const DashboardLayout: React.FC<Props> = ({ role, userName: fallbackName, onLogo
           </div>
           {!isMobile && <div style={{ flex: 1 }} />}
           <div style={{ position: 'relative', marginInlineStart: isMobile ? 'auto' : 0 }}>
-            <button onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative', width: 44, height: 44, borderRadius: 12, border: `1px solid ${showNotifications ? '#7B2FF6' : '#ECEEF1'}`, background: showNotifications ? '#F3ECFE' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <button onClick={() => setShowNotifications(!showNotifications)} className="tw-btn-ghost" style={{ position: 'relative', width: 44, height: 44, borderRadius: 12, border: `1px solid ${showNotifications ? '#7B2FF6' : '#ECEEF1'}`, background: showNotifications ? '#F3ECFE' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all .2s ease' }}>
               <span style={{ display: 'flex' }}>{DIcon('bell', { size: 19, color: showNotifications ? '#7B2FF6' : '#5A6478' })}</span>
               {unreadCount > 0 && (
                 <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#E23B4E', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>

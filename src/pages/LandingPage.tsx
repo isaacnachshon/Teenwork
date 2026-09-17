@@ -56,10 +56,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
     const [showRightsModal, setShowRightsModal] = useState(() => new URLSearchParams(window.location.search).get('rights') === '1');
 
     return (
-        <div className="bg-white text-gray-800 font-sans">
+        <div className="bg-white font-sans" style={{ color: '#1B2333' }}>
             <header className="relative py-6 px-4 sm:px-6 lg:px-8 bg-gray-50/50 backdrop-blur-sm">
                 <nav aria-label="ניווט ראשי" className="container mx-auto flex justify-between items-center">
-                    <a href="#" className="text-3xl font-bold text-purple-600">TEENWORK</a>
+                    <a href="#" className="text-3xl tw-logo-wordmark">TEENWORK</a>
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#categories" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">קטגוריות</a>
                         <a href="#how-it-works" className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">איך זה עובד</a>
@@ -67,33 +67,33 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                         <button onClick={() => setShowRightsModal(true)} className="font-semibold text-gray-600 hover:text-purple-600 transition-colors">זכויות נוער</button>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={() => onRoleSelect('teen')} className="font-bold text-purple-600 hover:opacity-80 transition-opacity">כניסה</button>
-                        <button onClick={() => onRoleSelect('employer')} className="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">פרסם משרה</button>
+                        <button onClick={() => onRoleSelect('teen')} className="font-bold hover:opacity-80 transition-opacity" style={{ color: '#7B2FF6' }}>כניסה</button>
+                        <button onClick={() => onRoleSelect('employer')} className="tw-btn-brand text-white font-bold py-2 px-5 rounded-lg text-sm">פרסם משרה</button>
                     </div>
                 </nav>
             </header>
 
             <main>
                 {/* Hero Section */}
-                <section className="text-center py-20 px-4 tw-hero-mesh">
+                <section className="text-center py-20 px-4 tw-landing-hero">
                     <div className="container mx-auto">
-                        <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 text-sm font-bold px-4 py-2 rounded-full mb-6 animate-in fade-in-0 duration-500">
-                            <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                        <div className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full mb-6 animate-in fade-in-0 duration-500" style={{ background: '#F3ECFE', color: '#5A18C2', border: '1px solid #E8DAF8' }}>
+                            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'linear-gradient(135deg, #7B2FF6, #5560FF)' }}></span>
                             פלטפורמה חינמית לנוער 14–18 · בהתאם לחוק עבודת הנוער
                         </div>
                         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 leading-tight animate-in fade-in-0 slide-in-from-top-4 duration-500">
                             עבודה לנוער — קרוב לבית,<br />
-                            <span className="text-purple-600">לפי החוק.</span>
+                            <span className="tw-gradient-text">לפי החוק.</span>
                         </h1>
                         <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto animate-in fade-in-0 duration-500 delay-100">
                             TEENWORK מוצאת לבני נוער גילאי 14–18 עבודה חלקית — לפי מרחק הליכה, יום ושעה.<br className="hidden md:block" />
                             ללא רכב. לרוב ללא ניסיון. מתחילים השבוע.
                         </p>
                         <div className="mt-8 flex justify-center gap-4 animate-in fade-in-0 duration-500 delay-200 flex-wrap">
-                            <button onClick={() => onRoleSelect('teen')} className="bg-purple-600 text-white font-bold py-3 px-8 rounded-full hover:bg-purple-700 transition-colors text-lg shadow-lg shadow-purple-200">
+                            <button onClick={() => onRoleSelect('teen')} className="tw-btn-brand font-bold py-3 px-8 text-lg">
                                 מצא עבודה קרוב אלי ←
                             </button>
-                            <button onClick={() => onRoleSelect('employer')} className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-colors text-lg ring-1 ring-inset ring-gray-300">
+                            <button onClick={() => onRoleSelect('employer')} className="tw-btn-brand-outline font-bold py-3 px-8 text-lg">
                                 אני מעסיק — פרסם משרה חינם
                             </button>
                         </div>
@@ -112,7 +112,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                                 { excuse: '"השעות שלי מסובכות"', fix: 'סנן לפי יום, שעה ומשך המשמרת — לא רק שכונה.' },
                                 { excuse: '"אני לא יודע אם העבודה בסדר"', fix: 'הזכויות שלך לפי חוק עבודת נוער מופיעות על כל משרה, לפני שאתה מגיש מועמדות.' },
                             ].map(({ excuse, fix }) => (
-                                <div key={excuse} className="flex gap-4 items-start bg-gray-50 rounded-xl p-5">
+                                <div key={excuse} className="flex gap-4 items-start rounded-xl p-5 transition-shadow duration-200 hover:shadow-md" style={{ background: '#F5F6F8', border: '1px solid #EAECEF' }}>
                                     <div className="text-red-400 text-xl mt-0.5">✗</div>
                                     <div>
                                         <p className="text-gray-500 line-through text-sm">{excuse}</p>
@@ -140,8 +140,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                     <div className="container mx-auto text-center">
                         <h2 className="text-3xl font-bold text-gray-800">כל כך פשוט להתחיל</h2>
                         <div className="mt-6 flex justify-center bg-gray-100 p-1.5 rounded-full max-w-xs mx-auto">
-                            <button onClick={() => setHowItWorksView('teen')} className={`w-1/2 py-2 rounded-full font-bold transition-colors ${howItWorksView === 'teen' ? 'bg-purple-600 text-white shadow' : 'text-gray-600'}`}>לנוער</button>
-                            <button onClick={() => setHowItWorksView('employer')} className={`w-1/2 py-2 rounded-full font-bold transition-colors ${howItWorksView === 'employer' ? 'bg-blue-600 text-white shadow' : 'text-gray-600'}`}>למעסיקים</button>
+                            <button onClick={() => setHowItWorksView('teen')} className={`w-1/2 py-2 rounded-full font-bold transition-all duration-200 ${howItWorksView === 'teen' ? 'text-white shadow' : 'text-gray-600'}`} style={howItWorksView === 'teen' ? { background: 'linear-gradient(135deg, #7B2FF6, #5560FF)' } : undefined}>לנוער</button>
+                            <button onClick={() => setHowItWorksView('employer')} className={`w-1/2 py-2 rounded-full font-bold transition-all duration-200 ${howItWorksView === 'employer' ? 'text-white shadow' : 'text-gray-600'}`} style={howItWorksView === 'employer' ? { background: 'linear-gradient(135deg, #7B2FF6, #5560FF)' } : undefined}>למעסיקים</button>
                         </div>
                         <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
                             {howItWorksView === 'teen' ? (
@@ -162,13 +162,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onRoleSelect }) => {
                 </section>
 
                 {/* Final CTA */}
-                <section className="py-20 px-4 bg-purple-600 text-white">
+                <section className="py-20 px-4 tw-cta-band text-white">
                     <div className="container mx-auto text-center">
                         <h2 className="text-4xl font-bold">מוכנים להתחיל?</h2>
                         <p className="mt-2 text-lg opacity-90">הצטרפו היום לקהילת TEENWORK והתחילו את המסע שלכם.</p>
                         <div className="mt-8 flex justify-center gap-4">
-                            <button onClick={() => onRoleSelect('teen')} className="bg-white text-purple-600 font-bold py-3 px-8 rounded-full hover:bg-purple-100 transition-colors text-lg">מצא את העבודה הבאה שלך</button>
-                            <button onClick={() => onRoleSelect('employer')} className="bg-transparent text-white font-bold py-3 px-8 rounded-full hover:bg-white/10 transition-colors text-lg ring-2 ring-inset ring-white">גייס עובדים לעסק</button>
+                            <button onClick={() => onRoleSelect('teen')} className="bg-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 hover:scale-[1.03] hover:shadow-lg" style={{ color: '#7B2FF6' }}>מצא את העבודה הבאה שלך</button>
+                            <button onClick={() => onRoleSelect('employer')} className="bg-transparent text-white font-bold py-3 px-8 rounded-full hover:bg-white/15 transition-all duration-200 text-lg ring-2 ring-inset ring-white/90">גייס עובדים לעסק</button>
                         </div>
                     </div>
                 </section>
