@@ -1,18 +1,18 @@
 /* TeenWork - Global Styles with Dark Mode Support */
 
 :root {
-  /* Light Mode Colors */
+  /* Light Mode — aligned to DESIGN.md brand tokens */
   --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-tertiary: #f3f4f6;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-tertiary: #9ca3af;
-  --border-color: #e5e7eb;
-  --accent-primary: #3b82f6;
-  --accent-secondary: #10b981;
-  --accent-danger: #ef4444;
-  --accent-warning: #f59e0b;
+  --bg-secondary: #F5F6F8;
+  --bg-tertiary: #F4F5F7;
+  --text-primary: #1B2333;
+  --text-secondary: #4A576E;
+  --text-tertiary: #8A93A3;
+  --border-color: #EAECEF;
+  --accent-primary: #7B2FF6;
+  --accent-secondary: #0E8A48;
+  --accent-danger: #E23B4E;
+  --accent-warning: #F59E0B;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);

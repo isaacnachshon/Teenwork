@@ -1,0 +1,168 @@
+/* TeenWork Brand Tokens — DESIGN.md v1.0
+   Central source of truth for brand colors. Import before dashboard.css. */
+
+:root {
+  /* Brand Primary */
+  --tw-primary: #7B2FF6;
+  --tw-primary-end: #5560FF;
+  --tw-primary-gradient: linear-gradient(135deg, #7B2FF6, #5560FF);
+  --tw-primary-light: #F3ECFE;
+  --tw-primary-hover: #E8DAF8;
+  --tw-primary-dark: #5A18C2;
+  --tw-primary-dark-alt: #6A1FD0;
+
+  /* Semantic */
+  --tw-success: #0E8A48;
+  --tw-success-light: #E4F5EA;
+  --tw-danger: #E23B4E;
+  --tw-warning: #F59E0B;
+
+  /* Surfaces */
+  --tw-bg: #F5F6F8;
+  --tw-surface: #FFFFFF;
+  --tw-inactive-bg: #F4F5F7;
+
+  /* Text */
+  --tw-text: #1B2333;
+  --tw-text-secondary: #4A576E;
+  --tw-text-secondary-alt: #5A6478;
+  --tw-text-tertiary: #8A93A3;
+  --tw-text-muted: #B0B8C7;
+
+  /* Borders */
+  --tw-border: #EAECEF;
+  --tw-border-light: #ECEEF1;
+  --tw-border-active: #E8DAF8;
+
+  /* Shadows / glows */
+  --tw-shadow-card: 0 1px 3px rgba(123, 47, 246, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --tw-shadow-card-hover: 0 8px 25px rgba(123, 47, 246, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+  --tw-shadow-nav-active: 0 2px 12px rgba(123, 47, 246, 0.14), inset 0 0 0 1px rgba(123, 47, 246, 0.08);
+  --tw-shadow-cta: 0 8px 24px rgba(123, 47, 246, 0.35);
+  --tw-glow-primary: 0 0 0 3px rgba(123, 47, 246, 0.12);
+
+  /* Motion */
+  --tw-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tw-duration: 0.2s;
+}
+
+/* Align legacy index.css accents to brand (when brand.css loads after index.css) */
+:root {
+  --accent-primary: var(--tw-primary);
+  --bg-secondary: var(--tw-bg);
+  --text-primary: var(--tw-text);
+}
+
+/* Utility helpers */
+.tw-gradient-text {
+  background: var(--tw-primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tw-gradient-bg {
+  background: var(--tw-primary-gradient);
+}
+
+.tw-btn-brand {
+  background: var(--tw-primary-gradient);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  border-radius: 9999px;
+  box-shadow: var(--tw-shadow-cta);
+  transition: filter var(--tw-duration) var(--tw-ease),
+              transform var(--tw-duration) var(--tw-ease),
+              box-shadow var(--tw-duration) var(--tw-ease);
+}
+
+.tw-btn-brand:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(123, 47, 246, 0.4);
+}
+
+.tw-btn-brand:active {
+  transform: scale(0.98);
+  filter: brightness(0.98);
+}
+
+.tw-btn-brand-outline {
+  background: var(--tw-surface);
+  color: var(--tw-primary);
+  border: 1.5px solid var(--tw-primary-hover);
+  font-weight: 700;
+  border-radius: 9999px;
+  transition: background var(--tw-duration) var(--tw-ease),
+              border-color var(--tw-duration) var(--tw-ease),
+              transform var(--tw-duration) var(--tw-ease),
+              box-shadow var(--tw-duration) var(--tw-ease);
+}
+
+.tw-btn-brand-outline:hover {
+  background: var(--tw-primary-light);
+  border-color: var(--tw-primary);
+  box-shadow: 0 4px 14px rgba(123, 47, 246, 0.12);
+  transform: translateY(-1px);
+}
+
+.tw-btn-brand-outline:active {
+  transform: scale(0.98);
+}
+
+/* Landing hero energy mesh (richer than dashboard mesh) */
+.tw-landing-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 40%, rgba(123, 47, 246, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, rgba(85, 96, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 45% at 55% 90%, rgba(123, 47, 246, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, #F8F5FE 0%, #F5F6F8 45%, #FFFFFF 100%);
+}
+
+.tw-landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 55%;
+  background: linear-gradient(135deg, rgba(123, 47, 246, 0.06), rgba(85, 96, 255, 0.04));
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tw-landing-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Final CTA band */
+.tw-cta-band {
+  background: var(--tw-primary-gradient);
+  position: relative;
+  overflow: hidden;
+}
+
+.tw-cta-band::after {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  top: -120px;
+  left: -80px;
+  pointer-events: none;
+}
+
+/* Logo wordmark */
+.tw-logo-wordmark {
+  background: var(--tw-primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
